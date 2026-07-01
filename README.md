@@ -57,14 +57,15 @@ These are deliberate and are documented with their _why_ in the contract comment
 
 > **This is an unaudited demonstration** of one primitive across predicate shapes. It is not production-ready and has not been audited.
 
-| Piece                                            | State                                                            |
-| ------------------------------------------------ | ---------------------------------------------------------------- |
-| `Indenture.sol` engine + Order I `Leash`         | ✅ built · 12 harness tests                                      |
-| Order II `SealedSettlement` + `ConfidentialFeed` | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests) |
-| Leak-audit + blind-agent tests                   | ✅ passing (see `test/`)                                         |
-| Real Sepolia tx hashes (happy + rejection paths) | ⏳ pending a funded deployer key — see `DEPLOYMENTS.md`          |
-| Sealed Obsidian frontend (Orders I–II)           | ⏳ pending                                                       |
-| Order III (Tier 2)                               | 📋 roadmap spec only                                             |
+| Piece                                              | State                                                            |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| `Indenture.sol` engine + Order I `Leash`           | ✅ built · 12 harness tests                                      |
+| Order II `SealedSettlement` + `ConfidentialFeed`   | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests) |
+| Leak-audit + blind-agent tests                     | ✅ passing (see `test/`)                                         |
+| Backbone live on Sepolia (engine + cToken + feed)  | ✅ deployed + verified — see `DEPLOYMENTS.md`                    |
+| Encrypted settlement tx hashes (happy + rejection) | ⏳ pending — driven from the frontend vs. the real relayer       |
+| Sealed Obsidian frontend (Orders I–II)             | ⏳ pending                                                       |
+| Order III (Tier 2)                                 | 📋 roadmap spec only                                             |
 
 **Real infra vs. local harness — stated plainly:** the local test suite runs on **Zama's own cleartext harness** (`forge-fhevm`) for fast iteration — that is a Zama-provided test host, _not_ the real coprocessor. **The real coprocessor, threshold-KMS decryption, and relayer only run on Sepolia**, so the definition of done is real Sepolia transaction hashes (tracked in `DEPLOYMENTS.md`), not green local tests. Nothing here fakes the relayer, encryption, input proof, ACL, user-decryption, or confidential transfer.
 
