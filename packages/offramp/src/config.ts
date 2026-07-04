@@ -1,5 +1,12 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { getAddress, type Address, type Hex } from "viem";
+
+// Load .env.local (preferred, gitignored secrets) then .env, from the package root — not cwd.
+// dotenv gives the first file precedence, so .env.local wins.
+const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+dotenvConfig({ path: [resolve(pkgDir, ".env.local"), resolve(pkgDir, ".env")] });
 
 /** Typed, validated runtime config. Throws early on any missing required var. */
 export type Config = {

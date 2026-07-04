@@ -20,6 +20,51 @@ export type ListenerDeps = {
   beneficiaries: BeneficiaryResolver;
 };
 
+/** One settled corridor transfer: sealed outcome + the public parties, correlated by nonce. */
+export type Settlement = {
+  nonce: bigint;
+  outcomeHandle: Hex;
+  sender: Address;
+  recipient: Address;
+};
+
+/** What the off-ramp did with one settlement. */
+export type PayoutOutcome =
+  | { kind: "paid"; amount: string; currency: string; providerId: string; status: string }
+  | { kind: "nullified" }
+  | { kind: "no-beneficiary"; recipient: Address };
+
+/**
+ * The gate + payout — the one place the loop's off-ramp half lives, so both the live
+ * listener and any integration driver run the SAME code. Officer-decrypts the sealed
+ * outcome and fires the payout ONLY when `moved > 0` (VERIFICATION.md §6e).
+ */
+export async function processSettlement(deps: ListenerDeps, ev: Settlement): Promise<PayoutOutcome> {
+  const { cfg, decryptor, provider, beneficiaries } = deps;
+
+  // 1. Officer-decrypt the sealed outcome. moved ∈ {0, amount}.
+  const moved = await decryptor.decryptMoved(ev.outcomeHandle, cfg.chain.engineAddress);
+
+  // 2. THE GATE — a transfer nullified by ANY rule has moved == 0 → no fiat leg.
+  if (moved <= 0n) return { kind: "nullified" };
+
+  // 3. Resolve the fiat beneficiary for the on-chain recipient.
+  const beneficiary = await beneficiaries.resolve(ev.recipient);
+  if (!beneficiary) return { kind: "no-beneficiary", recipient: ev.recipient };
+
+  // 4. Pay out (idempotent on nonce). `moved` is in confidential-token base units — map to
+  //    local-currency units here (FX + decimals) per the corridor's settlement contract.
+  const amount = mapToLocalAmount(moved, beneficiary.currency);
+  const reference = `veil-${cfg.chain.corridorAddress}-${ev.nonce}`;
+  const result = await provider.payout({
+    reference,
+    amount,
+    beneficiary,
+    narration: `VEIL corridor clear nonce ${ev.nonce}`,
+  });
+  return { kind: "paid", amount, currency: beneficiary.currency, providerId: result.providerId, status: result.status };
+}
+
 /**
  * The off-ramp listener. Neither `CorridorTransfer` (public ordering only) nor `Settled`
  * (a sealed `outcomeHandle`) reveals whether a transfer CLEARED (moved > 0) or was NULLIFIED
@@ -55,8 +100,14 @@ export async function runListener(deps: ListenerDeps): Promise<void> {
     onLogs: async logs => {
       for (const log of logs) {
         const { nonce, outcomeHandle } = log.args as { nonce: bigint; outcomeHandle: Hex };
+        const parties = partiesByNonce.get(nonce.toString());
+        if (!parties) {
+          console.warn(`[offramp] nonce=${nonce} settled but no CorridorTransfer seen yet — deferring`);
+          continue;
+        }
         try {
-          await handleSettled(deps, nonce, outcomeHandle, partiesByNonce);
+          const out = await processSettlement(deps, { nonce, outcomeHandle, ...parties });
+          logOutcome(nonce, deps.provider.name, out);
         } catch (err) {
           console.error(`[offramp] settle nonce=${nonce} failed:`, (err as Error).message);
         }
@@ -69,48 +120,17 @@ export async function runListener(deps: ListenerDeps): Promise<void> {
   );
 }
 
-async function handleSettled(
-  deps: ListenerDeps,
-  nonce: bigint,
-  outcomeHandle: Hex,
-  partiesByNonce: Map<string, { sender: Address; recipient: Address }>,
-): Promise<void> {
-  const { cfg, decryptor, provider, beneficiaries } = deps;
-
-  // 1. Officer-decrypt the sealed outcome. moved ∈ {0, amount}.
-  const moved = await decryptor.decryptMoved(outcomeHandle, cfg.chain.engineAddress);
-
-  // 2. THE GATE — a transfer nullified by ANY rule has moved == 0 → no fiat leg.
-  if (moved <= 0n) {
-    console.log(`[offramp] nonce=${nonce} nullified (moved=0) — no payout`);
-    return;
+function logOutcome(nonce: bigint, provider: string, out: PayoutOutcome): void {
+  switch (out.kind) {
+    case "paid":
+      return console.log(
+        `[offramp] nonce=${nonce} PAID ${out.amount} ${out.currency} via ${provider} id=${out.providerId} status=${out.status}`,
+      );
+    case "nullified":
+      return console.log(`[offramp] nonce=${nonce} nullified (moved=0) — no payout`);
+    case "no-beneficiary":
+      return console.warn(`[offramp] nonce=${nonce} no fiat beneficiary mapped for ${out.recipient} — skipping`);
   }
-
-  // 3. Resolve the fiat beneficiary for the on-chain recipient.
-  const parties = partiesByNonce.get(nonce.toString());
-  if (!parties) {
-    console.warn(`[offramp] nonce=${nonce} cleared but no CorridorTransfer seen yet — deferring`);
-    return;
-  }
-  const beneficiary = await beneficiaries.resolve(parties.recipient);
-  if (!beneficiary) {
-    console.warn(`[offramp] nonce=${nonce} no fiat beneficiary mapped for ${parties.recipient} — skipping`);
-    return;
-  }
-
-  // 4. Pay out (idempotent on nonce). `moved` is in confidential-token base units — map to
-  //    local-currency units here (FX + decimals) per the corridor's settlement contract.
-  const amount = mapToLocalAmount(moved, beneficiary.currency);
-  const reference = `veil-${cfg.chain.corridorAddress}-${nonce}`;
-  const result = await provider.payout({
-    reference,
-    amount,
-    beneficiary,
-    narration: `VEIL corridor clear nonce ${nonce}`,
-  });
-  console.log(
-    `[offramp] nonce=${nonce} PAID ${amount} ${beneficiary.currency} via ${provider.name} id=${result.providerId} status=${result.status}`,
-  );
 }
 
 /**

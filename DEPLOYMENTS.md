@@ -82,7 +82,15 @@ frontend guards.
 > Remaining block: a funded sandbox test balance **and** a deployed Corridor (Phase C) to emit a real clear.
 
 - Provider + sandbox endpoint/auth recorded in `VERIFICATION.md §6e`: ✅ Flutterwave v3 · `POST /v3/transfers` · static `Bearer FLWSECK_TEST` · key read-verified (`GET /v3/transfers` → 200, `GET /v3/banks/NG` → success)
-- Captured run: real Sepolia clear event → real sandbox payout call + provider reference id: `TBD`
+- **Full loop exercised end-to-end** (`packages/offramp/scripts/prove-loop.ts`, same `processSettlement` gate the live listener uses):
+  - On-chain half: Corridor harness happy path deploys a Corridor + commits + funds + screens + sets the sealed ceiling + settles → **cleared `moved = 80`** (gas 4.86M; `forge test test_compliantTransfer_clears`).
+  - Off-ramp half: `moved = 80 > 0` → gate opens → **real authenticated `POST /v3/transfers`** to Flutterwave (NGN, test account `0690000032`/`044`).
+  - Flutterwave response: `400 {"status":"error","message":"Please enable IP Whitelisting to access this service"}` — the request **reached the transfer handler**; the only block is an **account-side control**.
+- Remaining for a real reference id (all account/funding, not code):
+  1. Enable **IP whitelisting** in the Flutterwave dashboard and whitelist the listener's server IP (this run's egress was `172.166.156.96`).
+  2. **Fund the sandbox test balance** (NGN debit wallet).
+  3. For the **live KMS decrypt** (`RelayerNode`) instead of a stubbed `moved`: deploy the updated engine + a Corridor to Sepolia and top up the deployer beyond ~1 FHE tx — at 2.57 gwei the current 0.0426 ETH covers the deploys but not the ~6-tx FHE loop.
+- Captured run: real Sepolia clear event → real sandbox payout call + provider reference id: `TBD` (unblocks after 1–3 above)
 
 ## Performance honesty (Phase 6)
 
