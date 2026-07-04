@@ -50,8 +50,19 @@ nothing — not the amount, not any threshold, not even which rule caught it.
 
 ```
                  ┌──────────────────────────────────────────────┐
+                 │                     VEIL                     │
+                 │          sealed compliance corridor           │
+                 │  operator commits policy · sender transfers   │
+                 │  officer audits · scout sees only ciphertext  │
+                 │                                              │
+                 │  Rule 1: sealed cap                          │
+                 │  Rule 2: sealed recipient screening           │
+                 │  Rule 3: sealed per-sender velocity           │
+                 └──────────────────────▲───────────────────────┘
+                                        │ composes
+                 ┌──────────────────────┴───────────────────────┐
                  │                 Indenture.sol                 │
-                 │       the sealed-mandate engine (primitive)   │
+                 │       sealed-mandate engine (primitive)       │
                  │  · holds/settles ERC-7984 confidential token  │
                  │  · enforces a SEALED, encrypted mandate        │
                  │  · agent is BLIND (ACL default-deny; decrypt   │
@@ -59,22 +70,22 @@ nothing — not the amount, not any threshold, not even which rule caught it.
                  │  · single settlement path via FHE.select       │
                  │  · advances encrypted state + public nonce     │
                  │  · emits public hash-chained receipts          │
-                 └───────────────▲───────────────▲────────────────┘
-              consumes the engine │               │
-                        ┌─────────┘               └─────────┐
-                 ┌──────┴───────┐           ┌───────────────┴────────────┐
-                 │  Leash.sol   │           │ SealedSettlement.sol +      │
-                 │  Order I     │           │ ConfidentialFeed.sol        │
-                 │  1-party     │           │ Order II · 2-party ·        │
-                 │  (MARQUEE)   │           │ cross-contract composability│
-                 └──────────────┘           └────────────────────────────┘
+                 └───────────────▲───────────────▲───────────────┘
+                                 │               │
+                 proof it composes│               │proof it crosses contracts
+                         ┌───────┴──────┐ ┌──────┴──────────────────────┐
+                         │  Leash.sol   │ │ SealedSettlement.sol +       │
+                         │  Order I     │ │ ConfidentialFeed.sol         │
+                         │  1-party     │ │ Order II · 2-party           │
+                         └──────────────┘ └─────────────────────────────┘
 ```
 
-The engine is standalone and consumer-agnostic. Each **Order** defines only _its_ predicate shape and feeds encrypted inputs into the engine — that separation _is_ the composability proof.
+VEIL is the product story. INDENTURE is the engine underneath it: a standalone, consumer-agnostic
+sealed-mandate primitive that lets other contracts feed encrypted predicates into one settlement path. The
+other Orders are included to prove the engine is composable, not to compete with VEIL for attention.
 
-- **Order I — The Leash** (marquee): a fund/treasury delegates execution to a blind autonomous agent that is _physically incapable_ of exceeding its sealed caps/drawdown floor or paying a non-allowlisted counterparty. The agent cannot see the leash it runs on.
-- **Order II — Sealed Settlement** (composability proof): a parametric option whose payout releases iff an **independent** `ConfidentialFeed` contract's sealed value ≥ the writer's sealed strike. The feed's ciphertext flows into the mandate predicate _across a contract boundary_ via the ACL, and **the strike stays sealed even after settlement**.
-- **VEIL Corridor** (`orders/Corridor.sol`): the confidential cross-border payment corridor. Re-casts the engine as a corridor (operator / sender / compliance officer) and adds the **sealed per-sender velocity accumulator** (Rule 3) on top of the reused sealed cap + screening. Audit disclosure is moved from the operator to a distinct compliance officer.
+- **VEIL Corridor** (`orders/Corridor.sol`): the confidential cross-border payment corridor. It re-casts the engine as a corridor (operator / sender / compliance officer) and adds the **sealed per-sender velocity accumulator** (Rule 3) on top of the reused sealed cap + screening. Audit disclosure is moved from the operator to a distinct compliance officer.
+- **Composability proof — Order I + Order II:** `Leash.sol` shows the same engine can bind a blind autonomous agent to sealed caps/drawdown/screening; `SealedSettlement.sol` + `ConfidentialFeed.sol` shows a sealed predicate flowing _across a contract boundary_ while the strike stays sealed after settlement.
 - **Order III — Collective Release** (Tier 2 / roadmap): N-party private quorum release. Spec only for now — see [Roadmap](#roadmap).
 
 ## The honest design choices
@@ -92,17 +103,17 @@ These are deliberate and are documented with their _why_ in the contract comment
 
 > **This is an unaudited demonstration** of one primitive across predicate shapes. It is not production-ready and has not been audited.
 
-| Piece                                                                         | State                                                                                                   |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `Indenture.sol` engine + Order I `Leash`                                      | ✅ built · 12 harness tests                                                                             |
-| Order II `SealedSettlement` + `ConfidentialFeed`                              | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests)                                        |
-| **VEIL `Corridor` — sealed velocity accumulator**                             | ✅ built · 14 harness tests (cap/screen/velocity/rollover/combined/disclosure/leak-audit)               |
-| Leak-audit + blind-agent + officer-disclosure                                 | ✅ passing (see `test/`) — **42/42 total**                                                              |
-| Backbone live on Sepolia (engine + cToken + feed)                             | ✅ deployed + verified — see `DEPLOYMENTS.md`                                                           |
-| Corridor Sepolia hashes (compliant + every rejection + officer audit decrypt) | ⏳ pending — needs a funded key (Gate C)                                                                |
-| Off-ramp sandbox payout (on-chain-triggered)                                  | ⏳ pending — needs a PSP sandbox key (Gate C2)                                                          |
-| Sealed Corridor frontend (operator/sender/officer + scout's-eye)              | ✅ built · `tsc` + `next build` clean — wallet-driven Sepolia runs pending a deployed Corridor (Gate C) |
-| Order III (Tier 2)                                                            | 📋 roadmap spec only                                                                                    |
+| Piece                                                                         | State                                                                                                                                                |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Indenture.sol` engine + Order I `Leash`                                      | ✅ built · 12 harness tests                                                                                                                          |
+| Order II `SealedSettlement` + `ConfidentialFeed`                              | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests)                                                                                     |
+| **VEIL `Corridor` — sealed velocity accumulator**                             | ✅ built · 14 harness tests (cap/screen/velocity/rollover/combined/disclosure/leak-audit)                                                            |
+| Leak-audit + blind-agent + officer-disclosure                                 | ✅ passing (see `test/`) — **42/42 total**                                                                                                           |
+| Backbone live on Sepolia (engine + cToken + feed)                             | ✅ deployed + verified — see `DEPLOYMENTS.md`                                                                                                        |
+| Corridor Sepolia hashes (compliant + every rejection + officer audit decrypt) | ⏳ pending — needs a funded key (Gate C)                                                                                                             |
+| Off-ramp sandbox payout (on-chain-triggered)                                  | ⏳ pending — needs a PSP sandbox key (Gate C2)                                                                                                       |
+| Sealed Corridor frontend (operator/sender/officer + scout's-eye)              | ✅ built · `tsc` + `next build` clean (with wallet/SDK optional-dep warnings only) — wallet-driven Sepolia runs pending a deployed Corridor (Gate C) |
+| Order III (Tier 2)                                                            | 📋 roadmap spec only                                                                                                                                 |
 
 **Real infra vs. local harness — stated plainly:** the local test suite runs on **Zama's own cleartext harness** (`forge-fhevm`) for fast iteration — that is a Zama-provided test host, _not_ the real coprocessor. **The real coprocessor, threshold-KMS decryption, and relayer only run on Sepolia**, so the definition of done is real Sepolia transaction hashes (tracked in `DEPLOYMENTS.md`), not green local tests. Nothing here fakes the relayer, encryption, input proof, ACL, user-decryption, or confidential transfer.
 
@@ -114,18 +125,20 @@ Every API name, signature, import path, and address used was verified against th
 packages/foundry/
 ├── src/
 │   ├── Indenture.sol                     # the sealed-mandate engine (primitive)
-│   ├── orders/Leash.sol                  # Order I — the blind single agent (marquee)
+│   ├── orders/Corridor.sol               # VEIL — sealed compliance corridor + velocity accumulator
+│   ├── orders/Leash.sol                  # Order I — the blind single agent
 │   ├── orders/SealedSettlement.sol       # Order II — cross-contract consumer
 │   ├── orders/ConfidentialFeed.sol       # Order II — independent sealed-value oracle
 │   └── mocks/DemoConfidentialToken.sol   # ERC-7984 demo cToken for custody
 ├── script/DeployIndenture.s.sol          # deploys engine + token + feed to Sepolia
 └── test/
+    ├── Corridor.t.sol                     # VEIL (14) incl. velocity/rollover/officer/leak-audit
     ├── Indenture.t.sol                    # Order I + engine (12) incl. leak-audit & blind-agent
     ├── SealedSettlement.t.sol             # Order II (10) incl. sealed-strike & composition
     └── CrossContractProbe.t.sol           # throwaway cross-contract ACL proof (3)
 ```
 
-Run the suite (28 tests, on the cleartext harness):
+Run the suite (42 tests, on the cleartext harness):
 
 ```bash
 pnpm install            # node deps + husky
@@ -149,7 +162,9 @@ ETHERSCAN_API_KEY=...            # optional, enables --verify
 scripts/deploy-indenture-sepolia.sh   # deploys engine + demo cToken + ConfidentialFeed
 ```
 
-Per-mandate consumers (`Leash`, `SealedSettlement`) are deployed from the frontend, where the principal generates the client-side encrypted mandate inputs via the SDK. Record all addresses + tx hashes in [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
+The VEIL Corridor and the composability-proof consumers (`Leash`, `SealedSettlement`) are deployed per
+mandate, where the operator/principal generates the client-side encrypted inputs via the SDK. Record all
+addresses + tx hashes in [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
 
 ## Running the Sealed Corridor UI
 

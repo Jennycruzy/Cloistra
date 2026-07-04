@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { getAddress, type Address, type Hex } from "viem";
 
+const LIVE_SEPOLIA_ENGINE = "0x58eba10730Fd1ee4E5b24AaAa7caE154cbC69C83";
+
 // Load .env.local (preferred, gitignored secrets) then .env, from the package root — not cwd.
 // dotenv gives the first file precedence, so .env.local wins.
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,7 +33,8 @@ export type Config = {
 
 function req(name: string): string {
   const v = process.env[name];
-  if (!v || v.trim() === "") throw new Error(`Missing required env ${name} (see packages/offramp/.env.example)`);
+  if (!v || v.trim() === "")
+    throw new Error(`Missing required env ${name} (see packages/offramp/.env.example)`);
   return v.trim();
 }
 
@@ -45,7 +48,7 @@ export function loadConfig(): Config {
   return {
     chain: {
       rpcUrl: req("SEPOLIA_RPC_URL"),
-      engineAddress: getAddress(req("ENGINE_ADDRESS")),
+      engineAddress: getAddress(opt("ENGINE_ADDRESS", LIVE_SEPOLIA_ENGINE)),
       corridorAddress: getAddress(req("CORRIDOR_ADDRESS")),
       fromBlock: BigInt(opt("FROM_BLOCK", "0")),
     },

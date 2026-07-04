@@ -144,14 +144,18 @@ exact SDK surface proven by the counter example (§5). Confirmed against the ins
   `useIsAllowed`'s config types `contractAddresses` as a **non-empty tuple** `[Address, ...Address[]]`; the reveal
   path is gated by `hasTargets` so an empty set never decrypts.
 - viem type note: the token's `setOperator(address, uint48)` — viem maps `uint48` to **`number`**, not `bigint`.
-- The whole frontend passes `tsc --noEmit` and a production `next build`. The only build warnings are the
-  template's pre-existing optional-dep notices (`@react-native-async-storage/async-storage` under MetaMask SDK;
-  the `ox`/`viem` `tempo` "critical dependency" expression) — not from VEIL code.
+- The whole frontend passes `tsc --noEmit` and a production `next build` even when
+  `NEXT_PUBLIC_ALCHEMY_API_KEY` is unset; wagmi falls back to public RPCs for credential-free local/CI builds.
+  The only build warnings are the template's pre-existing optional-dep notices
+  (`@react-native-async-storage/async-storage` under MetaMask SDK; the `ox`/`viem` `tempo` "critical
+  dependency" expression) — not from VEIL code.
 
 ## 6. Env vars (from `.env.example`, consumed by `scripts/deploy-sepolia.sh`)
 
-`SEPOLIA_RPC_URL`, `DEPLOYER_PRIVATE_KEY`, `ETHERSCAN_API_KEY` (optional). Frontend also uses
-`NEXT_PUBLIC_ALCHEMY_API_KEY`, `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`. **None hardcoded — all from env.**
+`SEPOLIA_RPC_URL`, `DEPLOYER_PRIVATE_KEY`, `ETHERSCAN_API_KEY` (optional). Frontend also accepts
+`NEXT_PUBLIC_ALCHEMY_API_KEY` and `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`; both are optional for a local/CI
+build because the app can fall back to public RPCs and the built-in WalletConnect demo id. **No private key or
+server-side secret is hardcoded.**
 
 ## 6b. Blind-agent proof mechanism (verified)
 

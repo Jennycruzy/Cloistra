@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Deploy the shared INDENTURE backbone (engine + demo cToken + ConfidentialFeed) to Sepolia.
+# Deploy the shared INDENTURE backbone for VEIL (engine + demo cToken + ConfidentialFeed) to Sepolia.
 #
-# The per-mandate consumers (Leash, SealedSettlement) are deployed from the frontend, where the
-# principal generates the client-side encrypted mandate inputs via the SDK.
+# The VEIL Corridor and the composability-proof consumers (Leash, SealedSettlement) are deployed
+# separately, where the operator/principal generates encrypted mandate inputs via the SDK.
 #
 # Required env vars:
 #   SEPOLIA_RPC_URL       - Sepolia JSON-RPC endpoint
@@ -45,5 +45,5 @@ cd "$FOUNDRY_DIR"
 forge script "${FORGE_ARGS[@]}"
 
 echo
-echo "✅  INDENTURE backbone deployed to Sepolia."
+echo "✅  INDENTURE backbone for VEIL deployed to Sepolia."
 echo "    Copy the logged addresses + broadcast tx hashes into DEPLOYMENTS.md."

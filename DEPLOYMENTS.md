@@ -1,9 +1,9 @@
-# DEPLOYMENTS.md — INDENTURE on Sepolia
+# DEPLOYMENTS.md — VEIL / INDENTURE on Sepolia
 
-> **Status: backbone LIVE on Sepolia (2026-07-01).** The three consumer-agnostic contracts (engine,
-> demo cToken, feed) are deployed and verified on-chain — real deploy tx hashes below. The encrypted
-> settlement flows (commit/fund/exercise + principal decrypt) run from the frontend against the real
-> relayer/KMS and are still pending (Phase 5). The 28/28 forge-fhevm tests are the local **cleartext
+> **Status: INDENTURE backbone LIVE on Sepolia (2026-07-01); VEIL Corridor Sepolia flow pending.** The
+> consumer-agnostic engine, demo cToken, and feed are deployed and verified on-chain — real deploy tx hashes
+> below. The encrypted VEIL corridor flows (commit/fund/screen/ceiling/transfer + officer decrypt) still need
+> a funded deployer and real relayer/KMS transactions. The 42/42 forge-fhevm tests are the local **cleartext
 > harness** — not the real coprocessor; only the on-chain tx hashes below are real-Sepolia evidence.
 
 Network: **Sepolia** (chainId `11155111`). FHEVM host addresses are selected by `ZamaEthereumConfig`
@@ -21,13 +21,13 @@ Network: **Sepolia** (chainId `11155111`). FHEVM host addresses are selected by 
 All three verified live: engine returns `mandateExists(0)=false`, token reports `name()="Indenture USD"`
 / `symbol()="iUSD"`, feed reports `publisher()=`the deployer / `hasValue()=false`.
 
-## Per-mandate consumers (deployed from the frontend)
+## Per-mandate consumers (deployed per demo flow)
 
 | Contract           | Order    | Address | Deploy tx |
 | ------------------ | -------- | ------- | --------- |
-| `Leash`            | I        | `TBD`   | `TBD`     |
-| `SealedSettlement` | II       | `TBD`   | `TBD`     |
-| `Corridor` (VEIL)  | Velocity | `TBD`   | `TBD`     |
+| `Corridor` (VEIL)  | product  | `TBD`   | `TBD`     |
+| `Leash`            | proof I  | `TBD`   | `TBD`     |
+| `SealedSettlement` | proof II | `TBD`   | `TBD`     |
 
 ## Evidence — live tx hashes (Evidence Gates 0/2/3)
 
@@ -39,7 +39,7 @@ frontend guards.
 - Encrypted write: `TBD`
 - Browser user-decryption (EIP-712 prompt visible): `TBD` (screenshot)
 
-### Order I — Leash (Evidence Gate 2)
+### Composability proof — Order I / Leash (Evidence Gate 2)
 
 - Commit mandate: `TBD`
 - Fund custody: `TBD`
@@ -50,7 +50,7 @@ frontend guards.
 - Forged ciphertext → reverts at input verification: `TBD`
 - Principal decrypt (audit): `TBD`
 
-### Order II — SealedSettlement (Evidence Gate 3)
+### Composability proof — Order II / SealedSettlement (Evidence Gate 3)
 
 - Feed posts sealed value: `TBD`
 - Exercise in-the-money → payout: `TBD`

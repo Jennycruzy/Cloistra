@@ -52,15 +52,13 @@ jobs:
       - name: frontend typecheck
         run: pnpm --filter ./packages/nextjs check-types
 
+      - name: off-ramp typecheck
+        run: pnpm --filter @indenture/offramp check-types
+
       - name: frontend lint
         run: pnpm --filter ./packages/nextjs lint
 
       - name: frontend build
-        env:
-          # scaffold.config.ts throws in production if this is unset. CI only
-          # exercises the build pipeline — a stub is enough since no RPC call
-          # actually happens during `next build`.
-          NEXT_PUBLIC_ALCHEMY_API_KEY: ci-stub
         run: pnpm --filter ./packages/nextjs build
 
       - name: prettier check

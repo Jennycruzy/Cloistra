@@ -5,7 +5,7 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {Indenture} from "../Indenture.sol";
 
-/// @title Leash — Order I: the blind single agent (the marquee).
+/// @title Leash — Order I: the blind single-agent composability proof.
 /// @notice A fund/treasury delegates execution to an autonomous agent that is *physically
 ///         incapable* of exceeding its sealed per-trade cap, total-exposure cap, or drawdown
 ///         floor, or of paying a non-allowlisted counterparty — and the mandate is invisible,
@@ -36,12 +36,10 @@ contract Leash is ZamaEthereumConfig {
     /// @param clientNonce must equal the current mandate nonce; a replayed/stale move reverts.
     /// @param payee       the (public) counterparty; whether it is allowed stays sealed.
     /// @param amountExt   the agent's proposed amount, encrypted bound to (this contract, agent).
-    function execute(
-        uint256 clientNonce,
-        address payee,
-        externalEuint64 amountExt,
-        bytes calldata inputProof
-    ) external returns (bytes32 receipt) {
+    function execute(uint256 clientNonce, address payee, externalEuint64 amountExt, bytes calldata inputProof)
+        external
+        returns (bytes32 receipt)
+    {
         if (msg.sender != agent) revert NotAgent();
 
         // Input boundary: a hand-crafted ciphertext without a valid proof reverts HERE.

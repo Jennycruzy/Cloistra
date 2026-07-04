@@ -31,6 +31,7 @@
     "next:check-types": "pnpm --filter ./packages/nextjs check-types",
     "next:lint": "pnpm --filter ./packages/nextjs lint",
     "next:serve": "pnpm --filter ./packages/nextjs serve",
+    "offramp:check-types": "pnpm --filter @indenture/offramp check-types",
     "vercel": "pnpm --filter ./packages/nextjs vercel",
     "vercel:login": "pnpm --filter ./packages/nextjs vercel:login",
     "vercel:yolo": "pnpm --filter ./packages/nextjs vercel:yolo",

@@ -25,7 +25,7 @@ Drop these into `.env.local` (gitignored, server-side only) and the edge is wire
 | `FLW_SECRET_KEY`                    | Flutterwave **sandbox** v3 secret key (`FLWSECK_TEST…`) — the only cred needed  |
 | `OFFICER_PRIVATE_KEY`               | the compliance-officer signer (holds the decrypt grant) — never operator/sender |
 | `CORRIDOR_ADDRESS`                  | the deployed VEIL Corridor (Phase C)                                            |
-| `SEPOLIA_RPC_URL`, `ENGINE_ADDRESS` | chain access (engine address defaults to the live backbone)                     |
+| `SEPOLIA_RPC_URL`, `ENGINE_ADDRESS` | chain access (`ENGINE_ADDRESS` defaults to the live Sepolia backbone)           |
 | `BENEFICIARIES_JSON`                | on-chain recipient → KYC'd fiat destination map                                 |
 
 ## Run
