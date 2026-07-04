@@ -23,10 +23,11 @@ All three verified live: engine returns `mandateExists(0)=false`, token reports 
 
 ## Per-mandate consumers (deployed from the frontend)
 
-| Contract           | Order | Address | Deploy tx |
-| ------------------ | ----- | ------- | --------- |
-| `Leash`            | I     | `TBD`   | `TBD`     |
-| `SealedSettlement` | II    | `TBD`   | `TBD`     |
+| Contract           | Order    | Address | Deploy tx |
+| ------------------ | -------- | ------- | --------- |
+| `Leash`            | I        | `TBD`   | `TBD`     |
+| `SealedSettlement` | II       | `TBD`   | `TBD`     |
+| `Corridor` (VEIL)  | Velocity | `TBD`   | `TBD`     |
 
 ## Evidence — live tx hashes (Evidence Gates 0/2/3)
 
@@ -55,6 +56,32 @@ frontend guards.
 - Exercise in-the-money → payout: `TBD`
 - Exercise out-of-the-money → 0: `TBD`
 - (Strike remains sealed after settlement — proven by test; asserted on-chain via ACL.)
+
+### VEIL Corridor — velocity accumulator (Evidence Gate C)
+
+> **Status: proven on the cleartext harness (14/14 `Corridor.t.sol`); real Sepolia hashes pending.**
+> Every bullet below must be a REAL Sepolia tx — each rejection a real on-chain outcome (the engine
+> nullifies to zero), NOT a frontend guard. **Blocked on a funded `DEPLOYER_PRIVATE_KEY` + `SEPOLIA_RPC_URL`.**
+> The audit decrypt must be a real EIP-712 user-decryption by the compliance-officer address, never hardcoded.
+
+- Deploy `Corridor` (operator-sealed policy: cap + screening + ceiling): `TBD`
+- Commit mandate with a DISTINCT compliance officer (`commitMandateFor`): `TBD`
+- Fund custody + screen recipient + set sealed ceiling: `TBD`
+- Compliant transfer → funds move (gate-clear): `TBD`
+- Over-cap transfer → nullified to 0 (sealed state unchanged): `TBD`
+- Screened-out recipient → nullified: `TBD`
+- Velocity-breach transfer (after filling the window) → nullified: `TBD`
+- Window-rollover transfer → succeeds after the public window advances: `TBD`
+- Compliance-officer EIP-712 user-decryption of one flagged transfer (audit): `TBD`
+- Proof the sender/operator address CANNOT decrypt the policy handles: `TBD` (ACL / failed user-decrypt)
+
+### Off-ramp edge — sandbox payout (Evidence Gate C2)
+
+> Blocked on a Nigerian PSP sandbox account/key (Yellow Card / Fonbnk / equivalent). The listener fires a
+> REAL sandbox payout on a genuine on-chain "transfer cleared" event; key server-side only; labeled SANDBOX.
+
+- Provider + sandbox endpoint/schema recorded in `VERIFICATION.md`: `TBD`
+- Captured run: real Sepolia clear event → real sandbox payout call + provider reference id: `TBD`
 
 ## Performance honesty (Phase 6)
 

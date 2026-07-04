@@ -34,7 +34,11 @@ contract Indenture is ZamaEthereumConfig {
         euint64 custody; // this mandate's sealed confidential-token balance held by the engine
         euint64 highWaterMark; // sealed peak custody, for the drawdown floor
         // ── public bookkeeping ──
-        address principal; // commits/rotates/audits; the ONLY address granted decrypt rights
+        address principal; // commits/rotates/funds the mandate (VEIL: the corridor operator)
+        // The ONLY address granted decrypt rights (the audit role). Defaults to `principal` for legacy
+        // mandates (`commitMandate`); a VEIL corridor sets a DISTINCT compliance officer via
+        // `commitMandateFor`, so the operator commits the policy but can never read it (Phase B step 3).
+        address complianceOfficer;
         address agent; // authorized settler (an EOA agent, or a consumer contract); BLIND
         IERC7984 token; // custody token
         uint256 nonce; // public monotonic; a stale/replayed move reverts on it
@@ -74,9 +78,9 @@ contract Indenture is ZamaEthereumConfig {
     // it directly, so `FHE.fromExternal` verifies against the true caller).
     // ─────────────────────────────────────────────────────────────────────────────
 
-    /// @notice Commit a sealed mandate. Each limit carries its own input-verification proof
-    ///         (one proof per encrypted input — identical behavior on the local harness and on
-    ///         real Sepolia; a one-time commit, so the extra verifications are cheap in context).
+    /// @notice Commit a sealed mandate whose audit role is the committer itself (legacy behavior).
+    ///         Each limit carries its own input-verification proof (one proof per encrypted input —
+    ///         identical on the local harness and on real Sepolia; a one-time commit, cheap in context).
     /// @param id        caller-chosen mandate id
     /// @param agent     the blind executor (EOA) or the consumer contract authorized to settle
     /// @param token     ERC-7984 confidential token used for custody
@@ -91,15 +95,68 @@ contract Indenture is ZamaEthereumConfig {
         externalEuint64 drawdownPctExt,
         bytes calldata drawdownProof
     ) external {
+        // Legacy: the committer (principal) is its own compliance officer → identical grants to before.
+        // Resolve the ciphertexts HERE (msg.sender is the true committer) and pass value-type handles
+        // to `_register` — forwarding `bytes calldata` into an internal helper blows the stack.
+        _register(
+            id,
+            agent,
+            token,
+            msg.sender,
+            FHE.fromExternal(perTradeCapExt, perTradeProof),
+            FHE.fromExternal(totalCapExt, totalProof),
+            FHE.fromExternal(drawdownPctExt, drawdownProof)
+        );
+    }
+
+    /// @notice VEIL: commit a sealed mandate with a DISTINCT compliance officer as the audit role.
+    ///         The operator (msg.sender) commits, funds, and screens, but is granted NO decrypt rights;
+    ///         only `complianceOfficer` may decrypt the sealed policy and flagged outcomes (Phase B §3).
+    function commitMandateFor(
+        bytes32 id,
+        address agent,
+        IERC7984 token,
+        address complianceOfficer,
+        externalEuint64 perTradeCapExt,
+        bytes calldata perTradeProof,
+        externalEuint64 totalCapExt,
+        bytes calldata totalProof,
+        externalEuint64 drawdownPctExt,
+        bytes calldata drawdownProof
+    ) external {
+        _register(
+            id,
+            agent,
+            token,
+            complianceOfficer,
+            FHE.fromExternal(perTradeCapExt, perTradeProof),
+            FHE.fromExternal(totalCapExt, totalProof),
+            FHE.fromExternal(drawdownPctExt, drawdownProof)
+        );
+    }
+
+    /// @dev The single mandate-registration path. `officer` receives every audit (decrypt) grant; the
+    ///      agent receives NOTHING (the blind-agent guarantee). Sealed inputs are already internalized by
+    ///      the caller against the true committer, so only value-type handles cross into this helper.
+    function _register(
+        bytes32 id,
+        address agent,
+        IERC7984 token,
+        address officer,
+        euint64 perTradeCap,
+        euint64 totalCap,
+        euint64 drawdownPct
+    ) internal {
         Mandate storage m = _mandates[id];
         if (m.exists) revert MandateAlreadyExists();
 
         m.principal = msg.sender;
+        m.complianceOfficer = officer;
         m.agent = agent;
         m.token = token;
-        m.perTradeCap = FHE.fromExternal(perTradeCapExt, perTradeProof);
-        m.totalCap = FHE.fromExternal(totalCapExt, totalProof);
-        m.drawdownPct = FHE.fromExternal(drawdownPctExt, drawdownProof);
+        m.perTradeCap = perTradeCap;
+        m.totalCap = totalCap;
+        m.drawdownPct = drawdownPct;
         m.spent = FHE.asEuint64(0);
         m.custody = FHE.asEuint64(0);
         m.highWaterMark = FHE.asEuint64(0);
@@ -112,14 +169,15 @@ contract Indenture is ZamaEthereumConfig {
         FHE.allowThis(m.spent);
         FHE.allowThis(m.custody);
         FHE.allowThis(m.highWaterMark);
-        // The principal — and ONLY the principal — may decrypt the sealed mandate to audit.
+        // The compliance officer — and ONLY the officer — may decrypt the sealed mandate to audit.
+        // (Legacy mandates set officer = principal, so this is the pre-existing behavior unchanged.)
         // The agent is deliberately granted NOTHING here: this is the blind-agent guarantee.
-        FHE.allow(m.perTradeCap, msg.sender);
-        FHE.allow(m.totalCap, msg.sender);
-        FHE.allow(m.drawdownPct, msg.sender);
-        FHE.allow(m.spent, msg.sender);
-        FHE.allow(m.custody, msg.sender);
-        FHE.allow(m.highWaterMark, msg.sender);
+        FHE.allow(m.perTradeCap, officer);
+        FHE.allow(m.totalCap, officer);
+        FHE.allow(m.drawdownPct, officer);
+        FHE.allow(m.spent, officer);
+        FHE.allow(m.custody, officer);
+        FHE.allow(m.highWaterMark, officer);
 
         emit MandateCommitted(id, msg.sender, agent, address(token));
     }
@@ -143,23 +201,23 @@ contract Indenture is ZamaEthereumConfig {
 
         FHE.allowThis(m.custody);
         FHE.allowThis(m.highWaterMark);
-        FHE.allow(m.custody, msg.sender);
-        FHE.allow(m.highWaterMark, msg.sender);
+        FHE.allow(m.custody, m.complianceOfficer); // audit role only (== principal for legacy mandates)
+        FHE.allow(m.highWaterMark, m.complianceOfficer);
 
         emit Funded(id);
     }
 
     /// @notice Rotate a payee's sealed allow bit in ciphertext. The event does not reveal which
     ///         payee changed (though calldata necessarily carries the address — see contract docs).
-    function setPayeeAllowed(
-        bytes32 id,
-        address payee,
-        externalEbool allowedExt,
-        bytes calldata inputProof
-    ) external onlyPrincipal(id) {
+    function setPayeeAllowed(bytes32 id, address payee, externalEbool allowedExt, bytes calldata inputProof)
+        external
+        onlyPrincipal(id)
+    {
         ebool flag = FHE.fromExternal(allowedExt, inputProof);
         FHE.allowThis(flag);
-        FHE.allow(flag, msg.sender); // principal may audit the bit; agent may not
+        // The compliance officer may audit the screening bit; the operator and agent may not
+        // (== principal for legacy mandates, so pre-existing behavior is unchanged).
+        FHE.allow(flag, _mandates[id].complianceOfficer);
         _payeeAllowed[id][payee] = flag;
         _payeeSet[id][payee] = true;
         emit AllowlistRotated(id);
@@ -173,27 +231,34 @@ contract Indenture is ZamaEthereumConfig {
 
     /// @notice Order I settlement: enforce the sealed mandate with no extra predicate.
     /// @dev Caller MUST be the mandate's `agent` and MUST have `allowTransient(amount, engine)`.
-    function settle(
-        bytes32 id,
-        uint256 clientNonce,
-        address payee,
-        euint64 amount
-    ) external returns (bytes32 receipt) {
-        return _settle(id, clientNonce, payee, amount, FHE.asEbool(true));
+    function settle(bytes32 id, uint256 clientNonce, address payee, euint64 amount) external returns (bytes32 receipt) {
+        (receipt,) = _settle(id, clientNonce, payee, amount, FHE.asEbool(true), false);
     }
 
     /// @notice Order II/III settlement: AND an additional sealed predicate (e.g. feed >= strike,
     ///         or quorum reached) computed by an independent consumer contract into the mandate.
     /// @dev Caller MUST be the mandate's `agent`; both `amount` and `extraOk` MUST be granted
     ///      transient access to this engine by the caller (the cross-contract ACL grant).
-    function settleWithCondition(
-        bytes32 id,
-        uint256 clientNonce,
-        address payee,
-        euint64 amount,
-        ebool extraOk
-    ) external returns (bytes32 receipt) {
-        return _settle(id, clientNonce, payee, amount, extraOk);
+    function settleWithCondition(bytes32 id, uint256 clientNonce, address payee, euint64 amount, ebool extraOk)
+        external
+        returns (bytes32 receipt)
+    {
+        (receipt,) = _settle(id, clientNonce, payee, amount, extraOk, false);
+    }
+
+    /// @notice VEIL corridor settlement: like `settleWithCondition`, but returns the sealed `moved`
+    ///         handle and grants the calling consumer (the agent) transient COMPUTE rights on it, so it
+    ///         can chain the actually-moved amount into its own encrypted accounting (the per-sender
+    ///         velocity accumulator) IN THIS TX WITHOUT DECRYPTING IT. `moved ∈ {0, amount}`; a compute
+    ///         grant to a contract decrypts nothing (user-decryption needs a granted EOA too), so the
+    ///         blind-agent-over-policy and leak guarantees are untouched (see VEIL_DESIGN.md §4).
+    /// @dev Caller MUST be the mandate's `agent`; `amount` and `extraOk` MUST be `allowTransient`'d to
+    ///      this engine by the caller.
+    function settleCorridor(bytes32 id, uint256 clientNonce, address payee, euint64 amount, ebool extraOk)
+        external
+        returns (bytes32 receipt, euint64 moved)
+    {
+        return _settle(id, clientNonce, payee, amount, extraOk, true);
     }
 
     function _settle(
@@ -201,8 +266,9 @@ contract Indenture is ZamaEthereumConfig {
         uint256 clientNonce,
         address payee,
         euint64 amount,
-        ebool extraOk
-    ) internal returns (bytes32) {
+        ebool extraOk,
+        bool grantAgentMoved
+    ) internal returns (bytes32, euint64) {
         Mandate storage m = _mandates[id];
         if (!m.exists) revert UnknownMandate();
         if (msg.sender != m.agent) revert NotAgent();
@@ -236,11 +302,15 @@ contract Indenture is ZamaEthereumConfig {
         FHE.allowThis(m.spent);
         FHE.allowThis(m.custody);
         FHE.allowThis(moved);
-        // Principal-only selective disclosure: the principal may later decrypt the running
-        // state and this settlement's outcome to audit. The agent is granted nothing.
-        FHE.allow(m.spent, m.principal);
-        FHE.allow(m.custody, m.principal);
-        FHE.allow(moved, m.principal);
+        // Officer-only selective disclosure: the compliance officer may later decrypt the running
+        // state and this settlement's sealed outcome to audit. The agent and operator are granted
+        // nothing (== principal for legacy mandates, so pre-existing behavior is unchanged).
+        FHE.allow(m.spent, m.complianceOfficer);
+        FHE.allow(m.custody, m.complianceOfficer);
+        FHE.allow(moved, m.complianceOfficer);
+        // VEIL: optionally let the consumer (the agent) COMPUTE on the sealed outcome this tx so it can
+        // advance its own encrypted accounting (velocity accumulator). Compute-only — decrypts nothing.
+        if (grantAgentMoved) FHE.allowTransient(moved, msg.sender);
 
         // Move `moved` out of custody. The token must be able to USE the handle (transient),
         // and requires this engine (msg.sender) to be allowed on it — it is, having computed it.
@@ -255,7 +325,7 @@ contract Indenture is ZamaEthereumConfig {
         m.lastReceipt = keccak256(abi.encode(m.lastReceipt, m.nonce, payee, keccak256(abi.encode(outcomeHandle))));
 
         emit Settled(id, m.nonce, m.lastReceipt, outcomeHandle);
-        return m.lastReceipt;
+        return (m.lastReceipt, moved);
     }
 
     function _isPayeeAllowed(bytes32 id, address payee) internal returns (ebool) {
@@ -274,6 +344,13 @@ contract Indenture is ZamaEthereumConfig {
 
     function mandatePrincipal(bytes32 id) external view returns (address) {
         return _mandates[id].principal;
+    }
+
+    /// @notice The mandate's audit role — the ONLY address granted decrypt rights over the sealed
+    ///         policy and flagged outcomes. Equals the principal for legacy mandates; a distinct
+    ///         compliance officer for a VEIL corridor (committed via `commitMandateFor`).
+    function mandateComplianceOfficer(bytes32 id) external view returns (address) {
+        return _mandates[id].complianceOfficer;
     }
 
     function mandateToken(bytes32 id) external view returns (IERC7984) {
@@ -300,7 +377,11 @@ contract Indenture is ZamaEthereumConfig {
     }
 
     /// @notice Sealed mandate-limit handles. Same access story: principal-only meaning.
-    function sealedLimits(bytes32 id) external view returns (euint64 perTradeCap, euint64 totalCap, euint64 drawdownPct) {
+    function sealedLimits(bytes32 id)
+        external
+        view
+        returns (euint64 perTradeCap, euint64 totalCap, euint64 drawdownPct)
+    {
         Mandate storage m = _mandates[id];
         return (m.perTradeCap, m.totalCap, m.drawdownPct);
     }

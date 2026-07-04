@@ -1,16 +1,50 @@
-# INDENTURE
+# VEIL
 
-**Everyone else encrypts the amounts. INDENTURE encrypts the _rule_ — and hides it even from the actor it governs.**
+**Everyone else encrypts the payment and publishes the rules. VEIL seals the rules — the compliance line can't be scouted, copied, or leaked, yet every transfer is still checked against it.**
 
-INDENTURE is an encrypted, self-enforcing mandate for autonomous agents that hold and move money. The limits — per-trade cap, total exposure, drawdown floor, payee allowlist — are committed on-chain as ciphertext and enforced homomorphically by the [Zama Protocol (FHEVM)](https://docs.zama.org/protocol). A non-compliant move is silently nullified to zero on-chain via a single `FHE.select`; it cannot even be expressed. And **the agent the mandate governs cannot read the limits it is bound by** — the leash is made of math and is invisible to everyone: the public, front-runners, _and the agent itself_.
+> **VEIL** is a confidential cross-border payment corridor whose **compliance rulebook is sealed**. It is
+> built on the **INDENTURE** sealed-mandate engine (`Indenture.sol` — the internal engine name is
+> unchanged; VEIL is the product face). The engine already encrypts _the rule_, not just the amount; VEIL
+> re-casts it as a payment corridor and adds the one net-new primitive — an **encrypted per-sender velocity
+> accumulator** — so the cap, the recipient screening, and the rolling velocity ceiling are all ciphertext.
 
-## This is not "confidential settlement"
+Every compliance system on-chain today hides the **money** and publishes the **rules**: the amount is
+encrypted, but the cap, the screening list, and the velocity ceiling are readable in the contract — so a
+launderer can see exactly where the line is and structure right under it, a competitor can copy the
+corridor's risk model, and the operator can leak it. Hide the money but publish the rules and you've secured
+nothing that matters. **VEIL seals the rulebook itself.** Every transfer is still checked homomorphically
+against the cap, the screening, and the velocity ceiling — but no one (not the sender, not a bad actor
+probing the boundary, not a competitor, not the operator) can read where the compliance line sits. A breach
+is silently nullified to zero via a single `FHE.select` and reveals **which rule failed to no one**. Only a
+designated **compliance officer** can decrypt a specific flagged transfer to audit it.
 
-Confidential settlement hides the **amounts** of a transfer, or gates a transfer against a **known, public** compliance rule. INDENTURE is a different category:
+## A category of its own
+
+Confidential payments with _public_ compliance rules is the flagship pitch (ERC-7984 supports
+KYC/sanctions/spending-limit checks in-contract). Sealing the **policy** — encrypting the thresholds
+themselves so the boundary is unscoutable — is a different category:
 
 - It hides the **rule itself**, not just the amount.
-- Its adversary is an **insider** — a delegated agent holding the funds that might try to exceed its mandate — made mathematically incapable of doing so and kept **blind** to the limits so it cannot game or leak them.
-- It is a **horizontal primitive**: one sealed-mandate engine that other contracts compose against _without decrypting it_, not a single-vertical app.
+- Its adversary includes an **insider** — the operator, and the delegated corridor holding the funds — kept
+  **blind** to the sealed policy so it cannot game or leak the line; and the audit capability is split out to
+  a separate **compliance officer**, so it is private to the world yet accountable to the regulator.
+- It is a **horizontal primitive**: one sealed-mandate engine that other contracts compose against _without
+  decrypting it_, not a single-vertical app.
+
+## The three sealed rules
+
+Every transfer settles through one homomorphic predicate; a failing transfer is nullified to zero and leaks
+nothing — not the amount, not any threshold, not even which rule caught it.
+
+1. **Sealed per-transfer cap** — `FHE.le(amount, perTradeCap)` (reused from the engine).
+2. **Sealed recipient screening** — a per-address `ebool`, explicit default-deny; the address is public,
+   whether they pass is sealed (reused from the engine).
+3. **Sealed rolling velocity ceiling** (net-new) — an **encrypted running total per sender** that accumulates
+   across transfers and **resets on a public time-window boundary**, all without decryption. The window
+   rollover uses the _public_ `block.timestamp` (time is not secret — only amounts are); the accumulator
+   advances by the **actually-moved** amount, so a blocked transfer consumes no window budget; and the
+   ceiling is an absolute sealed amount, so there is **no encrypted division** anywhere. Built in
+   `orders/Corridor.sol`. See [`VEIL_DESIGN.md`](VEIL_DESIGN.md).
 
 ## Architecture
 
@@ -40,6 +74,7 @@ The engine is standalone and consumer-agnostic. Each **Order** defines only _its
 
 - **Order I — The Leash** (marquee): a fund/treasury delegates execution to a blind autonomous agent that is _physically incapable_ of exceeding its sealed caps/drawdown floor or paying a non-allowlisted counterparty. The agent cannot see the leash it runs on.
 - **Order II — Sealed Settlement** (composability proof): a parametric option whose payout releases iff an **independent** `ConfidentialFeed` contract's sealed value ≥ the writer's sealed strike. The feed's ciphertext flows into the mandate predicate _across a contract boundary_ via the ACL, and **the strike stays sealed even after settlement**.
+- **VEIL Corridor** (`orders/Corridor.sol`): the confidential cross-border payment corridor. Re-casts the engine as a corridor (operator / sender / compliance officer) and adds the **sealed per-sender velocity accumulator** (Rule 3) on top of the reused sealed cap + screening. Audit disclosure is moved from the operator to a distinct compliance officer.
 - **Order III — Collective Release** (Tier 2 / roadmap): N-party private quorum release. Spec only for now — see [Roadmap](#roadmap).
 
 ## The honest design choices
@@ -57,15 +92,17 @@ These are deliberate and are documented with their _why_ in the contract comment
 
 > **This is an unaudited demonstration** of one primitive across predicate shapes. It is not production-ready and has not been audited.
 
-| Piece                                              | State                                                            |
-| -------------------------------------------------- | ---------------------------------------------------------------- |
-| `Indenture.sol` engine + Order I `Leash`           | ✅ built · 12 harness tests                                      |
-| Order II `SealedSettlement` + `ConfidentialFeed`   | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests) |
-| Leak-audit + blind-agent tests                     | ✅ passing (see `test/`)                                         |
-| Backbone live on Sepolia (engine + cToken + feed)  | ✅ deployed + verified — see `DEPLOYMENTS.md`                    |
-| Encrypted settlement tx hashes (happy + rejection) | ⏳ pending — driven from the frontend vs. the real relayer       |
-| Sealed Obsidian frontend (Orders I–II)             | ⏳ pending                                                       |
-| Order III (Tier 2)                                 | 📋 roadmap spec only                                             |
+| Piece                                                                         | State                                                                                     |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `Indenture.sol` engine + Order I `Leash`                                      | ✅ built · 12 harness tests                                                               |
+| Order II `SealedSettlement` + `ConfidentialFeed`                              | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests)                          |
+| **VEIL `Corridor` — sealed velocity accumulator**                             | ✅ built · 14 harness tests (cap/screen/velocity/rollover/combined/disclosure/leak-audit) |
+| Leak-audit + blind-agent + officer-disclosure                                 | ✅ passing (see `test/`) — **42/42 total**                                                |
+| Backbone live on Sepolia (engine + cToken + feed)                             | ✅ deployed + verified — see `DEPLOYMENTS.md`                                             |
+| Corridor Sepolia hashes (compliant + every rejection + officer audit decrypt) | ⏳ pending — needs a funded key (Gate C)                                                  |
+| Off-ramp sandbox payout (on-chain-triggered)                                  | ⏳ pending — needs a PSP sandbox key (Gate C2)                                            |
+| Sealed Corridor frontend (operator/sender/officer + scout's-eye)              | ⏳ pending (Phase D)                                                                      |
+| Order III (Tier 2)                                                            | 📋 roadmap spec only                                                                      |
 
 **Real infra vs. local harness — stated plainly:** the local test suite runs on **Zama's own cleartext harness** (`forge-fhevm`) for fast iteration — that is a Zama-provided test host, _not_ the real coprocessor. **The real coprocessor, threshold-KMS decryption, and relayer only run on Sepolia**, so the definition of done is real Sepolia transaction hashes (tracked in `DEPLOYMENTS.md`), not green local tests. Nothing here fakes the relayer, encryption, input proof, ACL, user-decryption, or confidential transfer.
 

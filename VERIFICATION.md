@@ -174,6 +174,46 @@ proves ITM payout, OTM→0, ANDed-with-mandate composition, the sealed strike (b
 never granted), and the consumer-as-agent blind to the mandate. **Local harness only; Sepolia tx hashes
 still required for done.**
 
+## 6d. VEIL corridor additions (verified — built + 14 new harness tests green)
+
+The VEIL transformation adds an encrypted per-sender velocity accumulator on top of the engine. Every FHE
+call below was checked against the same installed `@fhevm/solidity/lib/FHE.sol` surface as §2 and proven by
+a real local `forge build` + `forge test` (42/42 total, incl. 14 new `test/Corridor.t.sol`).
+
+**Engine (`Indenture.sol`) — additive, backward-compatible (no renames, existing 28 tests unchanged):**
+
+- `Mandate` gains `address complianceOfficer`. Legacy `commitMandate` sets it to `msg.sender` (the
+  principal), so every audit grant (`fund`, `setPayeeAllowed`, `_settle`) — now routed to
+  `m.complianceOfficer` — is **identical** for legacy mandates. Verified: all 12 `Indenture.t.sol` +
+  10 `SealedSettlement.t.sol` assertions (incl. `persistAllowed(handle, principal)`) still pass.
+- `commitMandateFor(id, agent, token, complianceOfficer, …3×(ext,proof))` — sets a **distinct** officer;
+  the operator (`msg.sender`) is then granted NO decrypt rights. Proven by
+  `Corridor.t.sol::test_onlyOfficer_canDecryptSealedPolicy` (officer ✓, operator ✗, sender ✗ on cap +
+  screening flag via `_acl.persistAllowed`).
+- `settleCorridor(id, nonce, payee, amount, extraOk) → (bytes32 receipt, euint64 moved)` — delegates to the
+  same internal `_settle` (single fund-out path preserved) and additionally `FHE.allowTransient(moved,
+msg.sender)` so the calling consumer can chain the sealed outcome into its own encrypted accounting in
+  the same tx. `moved ∈ {0, amount}`; a contract compute-grant decrypts nothing (user-decryption needs a
+  granted EOA too — same fact the Order II sealed-strike test relies on). `settle`/`settleWithCondition`
+  keep their exact external signatures.
+
+**Corridor (`orders/Corridor.sol`) — the net-new velocity accumulator:**
+
+- Rollover uses the **public** `block.timestamp` (only amounts are secret): `bool rolled = anchor == 0 ||
+block.timestamp >= anchor + window`. `windowStart == 0` is the never-seen-sender sentinel that forces
+  `rolled == true`, so the uninitialized `_sealedSpent` handle is never read (a harness-caught bug: on the
+  cleartext host `block.timestamp` starts at 1, so a plain `>=` comparison would read an uninitialized
+  handle for a new sender — which would revert on the real coprocessor).
+- `carried = rolled ? FHE.asEuint64(0) : _sealedSpent[sender]` (plaintext branch on a public bool),
+  `withinVelocity = FHE.le(FHE.add(carried, amount), _ceiling)` — no encrypted division, absolute ceiling.
+- Accumulator advances by the **returned `moved`**, never the proposed amount, so a transfer blocked by any
+  rule consumes no window budget (`test_capBreach_nullified` / `test_withinVelocity_butOverCap_nullified`
+  assert `sealedSpent == 0` after a nullified transfer).
+
+**Build config:** `via_ir = true` added to `foundry.toml`. `commitMandateFor` (10 params incl. 3 dynamic
+`bytes`) plus the deep sealed predicate exceed the legacy stack-based codegen; the IR pipeline is the
+canonical fix with the optimizer already on. Semantics unchanged — verified by the full green suite.
+
 ## 7. OPEN ITEMS to confirm just-in-time
 
 - [x] `encryptUint64` / `encryptBool` — confirmed present in `FhevmTest.sol`.
