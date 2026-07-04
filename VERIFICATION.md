@@ -269,6 +269,16 @@ event alone. The honest design: the listener runs as the **compliance-officer id
 user-decryption of `outcomeHandle` server-side, and calls the sandbox payout **only when `moved > 0`** — the
 fiat leg is genuinely caused by (and proportional to) a real on-chain clear, not a bare event.
 
+That server-side user-decryption is **implemented** in `packages/offramp/src/officer.ts`
+(`ZamaOfficerDecryptor`) against the read-verified `@zama-fhe/sdk` v3 API: a `RelayerNode` (Node
+worker-thread relayer, from `@zama-fhe/sdk/node`) + a `ViemSigner` (`@zama-fhe/sdk/viem`) backed by the
+officer key drive `ZamaSDK.allow([engine])` (one-time EIP-712, signed non-interactively) then
+`ZamaSDK.userDecrypt([{ handle, contractAddress }]) → { [handle]: bigint }`. API read out of the installed
+package source (`node/index.d.ts`, `viem/index.d.ts`, `ZamaSDK` in `activity-*.d.ts`), not memory. Verified:
+`tsc --noEmit` clean and the SDK constructs in Node (subpath imports resolve, `allow`/`userDecrypt` present,
+worker pool + WASM deferred to first op). A **live decrypt to cleartext** still needs a deployed Corridor
+emitting a sealed `moved` ACL-granted to the officer (Gate C/C2).
+
 ## 7. OPEN ITEMS to confirm just-in-time
 
 - [x] `encryptUint64` / `encryptBool` — confirmed present in `FhevmTest.sol`.

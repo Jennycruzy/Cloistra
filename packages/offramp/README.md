@@ -35,10 +35,17 @@ cp packages/offramp/.env.example packages/offramp/.env.local   # fill in the val
 pnpm --filter @indenture/offramp start        # or `dev` for watch mode
 ```
 
-## Still to wire (Gate C2)
+## Officer decryption
 
-- `ZamaOfficerDecryptor.decryptMoved` isolates the real `@zama-fhe/sdk` v3 user-decryption; confirm the SDK
-  signature against the installed package and enable it (the flow is laid out inline).
+`ZamaOfficerDecryptor` (`src/officer.ts`) is wired to the real `@zama-fhe/sdk` v3 API: a `RelayerNode`
+(Node worker-thread relayer) + a `ViemSigner` backed by the officer key drive `ZamaSDK.allow([engine])`
+(one-time EIP-712, signed non-interactively) then `ZamaSDK.userDecrypt([{ handle, contractAddress }])`.
+Verified: `tsc` clean and the SDK constructs in Node (imports resolve, workers/WASM deferred). A **live
+decrypt** returning cleartext needs a deployed Corridor emitting a sealed `moved` ACL-granted to the officer.
+
+## Still to run (Gate C2)
+
+- Deploy a Corridor (Phase C) so a genuine clear emits a `moved` handle the officer can decrypt.
 - Fund the sandbox test balance and run one real transfer (the `POST /v3/transfers` path is verified — the test
   key authenticates, `GET /v3/transfers` → 200), then record the provider reference id in
   [`DEPLOYMENTS.md`](../../DEPLOYMENTS.md) Gate C2.

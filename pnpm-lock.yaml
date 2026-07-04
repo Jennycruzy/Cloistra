@@ -138,6 +138,9 @@ importers:
 
   packages/offramp:
     dependencies:
+      '@zama-fhe/sdk':
+        specifier: ^3.0.0
+        version: 3.0.0(@tanstack/query-core@5.96.2)(bufferutil@4.0.9)(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)(viem@2.48.4(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@4.3.6))
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -8036,7 +8039,7 @@ snapshots:
 
   '@zama-fhe/relayer-sdk@0.4.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
     dependencies:
-      commander: 14.0.2
+      commander: 14.0.3
       ethers: 6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       fetch-retry: 6.0.0
       keccak: 3.0.4
@@ -8056,6 +8059,17 @@ snapshots:
       '@tanstack/query-core': 5.96.2
       ethers: 6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       viem: 2.48.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@zama-fhe/sdk@3.0.0(@tanstack/query-core@5.96.2)(bufferutil@4.0.9)(ethers@6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)(viem@2.48.4(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@4.3.6))':
+    dependencies:
+      '@zama-fhe/relayer-sdk': 0.4.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+    optionalDependencies:
+      '@tanstack/query-core': 5.96.2
+      ethers: 6.16.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      viem: 2.48.4(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@4.3.6)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate

@@ -1,5 +1,9 @@
+import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import type { Address, Hex } from "viem";
+import { sepolia } from "viem/chains";
+import { MemoryStorage, SepoliaConfig, ZamaSDK } from "@zama-fhe/sdk";
+import { RelayerNode } from "@zama-fhe/sdk/node";
+import { ViemSigner } from "@zama-fhe/sdk/viem";
 import type { Config } from "./config.js";
 
 /**
@@ -17,31 +21,56 @@ export interface OfficerDecryptor {
 }
 
 /**
- * Real relayer user-decryption as the compliance officer (@zama-fhe/sdk v3, Sepolia).
+ * Real relayer user-decryption as the compliance officer (`@zama-fhe/sdk` v3, Sepolia).
  *
- * Wiring note (verify-never-assume; VERIFICATION.md §5b/§6e): the exact createInstance /
- * userDecrypt method signatures are pinned to @zama-fhe/sdk v3 — the same core the frontend's
- * `useUserDecrypt` wraps. Confirm them against the installed package before the first Sepolia
- * run. This class isolates that single call, so enabling it is a one-file change (Gate C2).
+ * Uses the Node worker-thread relayer (`RelayerNode`) + a viem-backed signer (`ViemSigner`)
+ * driven by the officer key — the SAME core the frontend's `useAllow` / `useUserDecrypt` wrap.
+ * The flow: `sdk.allow([contract])` performs the one-time EIP-712 authorization (signed
+ * non-interactively by the officer key, cached in storage), then `sdk.userDecrypt([...])`
+ * does the threshold user-decryption. The contract ACL-grants `moved` to the officer ONLY,
+ * so a sender/operator running this would be rejected — this is genuine, not a plaintext read.
  */
 export class ZamaOfficerDecryptor implements OfficerDecryptor {
+  private sdk: ZamaSDK | null = null;
+  private readonly allowed = new Set<string>();
+
   constructor(private readonly cfg: Config) {}
 
-  async decryptMoved(handle: Hex, contractAddress: Address): Promise<bigint> {
-    const officer = privateKeyToAccount(this.cfg.officer.privateKey);
+  /** Lazily build the SDK once (worker pool + WASM load are deferred to the first decrypt). */
+  private ensureSdk(): ZamaSDK {
+    if (this.sdk) return this.sdk;
 
-    // The real relayer user-decryption flow, to enable in one place (Gate C2):
-    //   1. const instance = await createInstance(SepoliaConfig)                 // @zama-fhe/sdk
-    //   2. const { publicKey, privateKey } = instance.generateKeypair()
-    //   3. const eip712 = instance.createEIP712(publicKey, [contractAddress], start, durationDays)
-    //   4. const signature = await officer.signTypedData(eip712)                // proves officer identity
-    //   5. const res = await instance.userDecrypt(
-    //          [{ handle, contractAddress }], privateKey, publicKey, signature,
-    //          [contractAddress], officer.address, start, durationDays)
-    //   6. return BigInt(res[handle])
-    throw new Error(
-      "ZamaOfficerDecryptor not wired: confirm @zama-fhe/sdk v3 userDecrypt signature and enable (Gate C2). " +
-        `officer=${officer.address} handle=${handle} contract=${contractAddress}`,
-    );
+    const account = privateKeyToAccount(this.cfg.officer.privateKey);
+    const transport = http(this.cfg.chain.rpcUrl);
+    const publicClient = createPublicClient({ chain: sepolia, transport });
+    const walletClient = createWalletClient({ account, chain: sepolia, transport });
+
+    const relayer = new RelayerNode({
+      transports: { [SepoliaConfig.chainId]: SepoliaConfig },
+      getChainId: async () => SepoliaConfig.chainId,
+      poolSize: 1, // one decrypt worker — each loads the full FHE WASM (~50–100 MB)
+    });
+    const signer = new ViemSigner({ walletClient, publicClient });
+
+    this.sdk = new ZamaSDK({ relayer, signer, storage: new MemoryStorage() });
+    return this.sdk;
+  }
+
+  async decryptMoved(handle: Hex, contractAddress: Address): Promise<bigint> {
+    const sdk = this.ensureSdk();
+
+    // One-time EIP-712 authorization per contract (cached); the officer key signs non-interactively.
+    const key = contractAddress.toLowerCase();
+    if (!this.allowed.has(key)) {
+      await sdk.allow([contractAddress]);
+      this.allowed.add(key);
+    }
+
+    const values = await sdk.userDecrypt([{ handle, contractAddress }]);
+    const moved = values[handle];
+    if (typeof moved !== "bigint") {
+      throw new Error(`officer decrypt returned a non-numeric value for ${handle}: ${String(moved)}`);
+    }
+    return moved;
   }
 }

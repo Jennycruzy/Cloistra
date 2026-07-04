@@ -11,6 +11,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@zama-fhe/sdk": "^3.0.0",
     "dotenv": "^16.4.5",
     "viem": "^2.47.12"
   },
