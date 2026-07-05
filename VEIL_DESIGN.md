@@ -1,6 +1,6 @@
 # VEIL_DESIGN.md — sealing the compliance rulebook
 
-> **VEIL** is the product face; **`Indenture` / `Indenture.sol`** stay the internal engine names
+> **VEIL** is the product face; **`Veil` / `Veil.sol`** stay the internal engine names
 > (the repo, deploy scripts, and verified Sepolia addresses depend on them). This document locks the
 > design _before_ code: the role re-cast, the three sealed rules incl. the net-new encrypted velocity
 > accumulator, and the compliance-officer disclosure model. No mechanism here contradicts what is
@@ -191,7 +191,7 @@ _compliance_, not just secrecy.
 
 | Design element                                                         | File                                               |
 | ---------------------------------------------------------------------- | -------------------------------------------------- |
-| `complianceOfficer` + `commitMandateFor` + `settleCorridor` (additive) | `packages/foundry/src/Indenture.sol`               |
+| `complianceOfficer` + `commitMandateFor` + `settleCorridor` (additive) | `packages/foundry/src/Veil.sol`                    |
 | velocity accumulator, three-rule predicate, officer grants             | `packages/foundry/src/orders/Corridor.sol` (new)   |
 | cap/screen/velocity/rollover/combined/disclosure/leak-audit tests      | `packages/foundry/test/Corridor.t.sol` (new)       |
 | real Sepolia corridor tx hashes                                        | `DEPLOYMENTS.md` (Phase C — needs funded key)      |

@@ -1,201 +1,277 @@
 # VEIL
 
-**Everyone else encrypts the payment and publishes the rules. VEIL seals the rules — the compliance line can't be scouted, copied, or leaked, yet every transfer is still checked against it.**
+VEIL is a confidential compliance corridor for cross-border transfers.
 
-> **VEIL** is a confidential cross-border payment corridor whose **compliance rulebook is sealed**. It is
-> built on the **INDENTURE** sealed-mandate engine (`Indenture.sol` — the internal engine name is
-> unchanged; VEIL is the product face). The engine already encrypts _the rule_, not just the amount; VEIL
-> re-casts it as a payment corridor and adds the one net-new primitive — an **encrypted per-sender velocity
-> accumulator** — so the cap, the recipient screening, and the rolling velocity ceiling are all ciphertext.
+It does not only encrypt payment amounts. It encrypts the compliance rulebook itself: the transfer cap, recipient screening flag, and per-sender velocity ceiling are ciphertext. Every transfer is still checked on-chain against those rules, but the sender, operator, outside observers, and competing corridors cannot read the thresholds or probe where the boundary is.
 
-Every compliance system on-chain today hides the **money** and publishes the **rules**: the amount is
-encrypted, but the cap, the screening list, and the velocity ceiling are readable in the contract — so a
-launderer can see exactly where the line is and structure right under it, a competitor can copy the
-corridor's risk model, and the operator can leak it. Hide the money but publish the rules and you've secured
-nothing that matters. **VEIL seals the rulebook itself.** Every transfer is still checked homomorphically
-against the cap, the screening, and the velocity ceiling — but no one (not the sender, not a bad actor
-probing the boundary, not a competitor, not the operator) can read where the compliance line sits. A breach
-is silently nullified to zero via a single `FHE.select` and reveals **which rule failed to no one**. Only a
-designated **compliance officer** can decrypt a specific flagged transfer to audit it.
+If a transfer fails any sealed rule, VEIL settles the moved amount to zero on-chain. It does not reveal which rule failed. A designated compliance officer can later decrypt a specific outcome for audit.
 
-## A category of its own
+## What VEIL Does
 
-Confidential payments with _public_ compliance rules is the flagship pitch (ERC-7984 supports
-KYC/sanctions/spending-limit checks in-contract). Sealing the **policy** — encrypting the thresholds
-themselves so the boundary is unscoutable — is a different category:
+VEIL lets a corridor operator set private transfer rules and then lets senders submit encrypted transfer attempts through those rules.
 
-- It hides the **rule itself**, not just the amount.
-- Its adversary includes an **insider** — the operator, and the delegated corridor holding the funds — kept
-  **blind** to the sealed policy so it cannot game or leak the line; and the audit capability is split out to
-  a separate **compliance officer**, so it is private to the world yet accountable to the regulator.
-- It is a **horizontal primitive**: one sealed-mandate engine that other contracts compose against _without
-  decrypting it_, not a single-vertical app.
+The operator can:
 
-## The three sealed rules
+- deploy or select a corridor
+- commit sealed mandate limits
+- fund confidential-token custody
+- rotate recipient screening flags
+- set a sealed per-sender velocity ceiling
 
-Every transfer settles through one homomorphic predicate; a failing transfer is nullified to zero and leaks
-nothing — not the amount, not any threshold, not even which rule caught it.
+The sender can:
 
-1. **Sealed per-transfer cap** — `FHE.le(amount, perTradeCap)` (reused from the engine).
-2. **Sealed recipient screening** — a per-address `ebool`, explicit default-deny; the address is public,
-   whether they pass is sealed (reused from the engine).
-3. **Sealed rolling velocity ceiling** (net-new) — an **encrypted running total per sender** that accumulates
-   across transfers and **resets on a public time-window boundary**, all without decryption. The window
-   rollover uses the _public_ `block.timestamp` (time is not secret — only amounts are); the accumulator
-   advances by the **actually-moved** amount, so a blocked transfer consumes no window budget; and the
-   ceiling is an absolute sealed amount, so there is **no encrypted division** anywhere. Built in
-   `orders/Corridor.sol`. See [`VEIL_DESIGN.md`](VEIL_DESIGN.md).
+- encrypt a transfer amount in the browser
+- submit a recipient and encrypted amount to the corridor
+- receive only a sealed outcome, not a rule-by-rule explanation
 
-## Architecture
+The compliance officer can:
 
-```
-                 ┌──────────────────────────────────────────────┐
-                 │                     VEIL                     │
-                 │          sealed compliance corridor           │
-                 │  operator commits policy · sender transfers   │
-                 │  officer audits · scout sees only ciphertext  │
-                 │                                              │
-                 │  Rule 1: sealed cap                          │
-                 │  Rule 2: sealed recipient screening           │
-                 │  Rule 3: sealed per-sender velocity           │
-                 └──────────────────────▲───────────────────────┘
-                                        │ composes
-                 ┌──────────────────────┴───────────────────────┐
-                 │                 Indenture.sol                 │
-                 │       sealed-mandate engine (primitive)       │
-                 │  · holds/settles ERC-7984 confidential token  │
-                 │  · enforces a SEALED, encrypted mandate        │
-                 │  · agent is BLIND (ACL default-deny; decrypt   │
-                 │    rights to the principal only)               │
-                 │  · single settlement path via FHE.select       │
-                 │  · advances encrypted state + public nonce     │
-                 │  · emits public hash-chained receipts          │
-                 └───────────────▲───────────────▲───────────────┘
-                                 │               │
-                 proof it composes│               │proof it crosses contracts
-                         ┌───────┴──────┐ ┌──────┴──────────────────────┐
-                         │  Leash.sol   │ │ SealedSettlement.sol +       │
-                         │  Order I     │ │ ConfidentialFeed.sol         │
-                         │  1-party     │ │ Order II · 2-party           │
-                         └──────────────┘ └─────────────────────────────┘
-```
+- decrypt policy handles and settlement outcomes when auditing
+- verify whether a transfer moved value or was nullified
+- inspect flagged outcomes without giving the operator or sender blanket visibility
 
-VEIL is the product story. INDENTURE is the engine underneath it: a standalone, consumer-agnostic
-sealed-mandate primitive that lets other contracts feed encrypted predicates into one settlement path. The
-other Orders are included to prove the engine is composable, not to compete with VEIL for attention.
+An outside observer can see:
 
-- **VEIL Corridor** (`orders/Corridor.sol`): the confidential cross-border payment corridor. It re-casts the engine as a corridor (operator / sender / compliance officer) and adds the **sealed per-sender velocity accumulator** (Rule 3) on top of the reused sealed cap + screening. Audit disclosure is moved from the operator to a distinct compliance officer.
-- **Composability proof — Order I + Order II:** `Leash.sol` shows the same engine can bind a blind autonomous agent to sealed caps/drawdown/screening; `SealedSettlement.sol` + `ConfidentialFeed.sol` shows a sealed predicate flowing _across a contract boundary_ while the strike stays sealed after settlement.
-- **Order III — Collective Release** (Tier 2 / roadmap): N-party private quorum release. Spec only for now — see [Roadmap](#roadmap).
+- public addresses
+- transaction ordering
+- public nonces and receipt hashes
+- ciphertext handles
 
-## The honest design choices
+An outside observer cannot see:
 
-These are deliberate and are documented with their _why_ in the contract comments:
+- transfer amounts
+- compliance thresholds
+- recipient screening decisions
+- velocity headroom
+- which sealed rule caused a zero settlement
 
-- **Drawdown without encrypted division.** "Equity must stay ≥ `pct`% of the high-water mark" is a cross-multiplied integer inequality (`equity·100 ≥ peak·pct`), never a ciphertext division — division compiles to an iterative bit-serial circuit that blows the per-tx compute budget and truncates invisibly.
-- **Encrypted, rotatable allowlist.** The payee address is necessarily public, but _whether it is allowed_ is a per-address `ebool` with explicit default-deny, decrypt-granted to the principal only. The principal rotates a flag in ciphertext without revealing which payee changed.
-- **Strong privacy by default; selective disclosure as a capability.** The predicate outcome stays encrypted — nothing leaks, not even pass/fail. Only the principal (via ACL + EIP-712 user-decryption) can decrypt a specific settlement's outcome to audit.
-- **Replay + forgery resistance.** A monotonic per-mandate `nonce` advances atomically with the encrypted running state (stale moves revert on-chain). A hand-crafted ciphertext with no valid input-verification proof reverts at `FHE.fromExternal` — a real on-chain ZK rejection, not a frontend guard.
-- **Public hash-chained receipts.** Each settlement stamps `keccak256(prevReceipt, nonce, payee, outcomeCommitment)` — tamper-evident public ordering that settlements _happened_, while amounts and limits stay sealed.
-- **The blind-agent proof.** The mandate handles (caps, drawdown, every allowlist flag) have **no ACL decrypt grant to the agent** — only to the principal. This is asserted by tests (see below) and is the demonstration of the whole idea.
+## The Core Idea
 
-## Status — honest carve-outs
+Most confidential-payment systems hide the amount but publish the policy. That means the compliance line is public: an attacker can structure payments just below it, and a competitor can copy it.
 
-> **This is an unaudited demonstration** of one primitive across predicate shapes. It is not production-ready and has not been audited.
+VEIL hides the policy too.
 
-| Piece                                                                         | State                                                                                                                                                |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Indenture.sol` engine + Order I `Leash`                                      | ✅ built · 12 harness tests                                                                                                                          |
-| Order II `SealedSettlement` + `ConfidentialFeed`                              | ✅ built · 10 harness tests · cross-contract ACL probe (3 tests)                                                                                     |
-| **VEIL `Corridor` — sealed velocity accumulator**                             | ✅ built · 14 harness tests (cap/screen/velocity/rollover/combined/disclosure/leak-audit)                                                            |
-| Leak-audit + blind-agent + officer-disclosure                                 | ✅ passing (see `test/`) — **42/42 total**                                                                                                           |
-| Backbone live on Sepolia (engine + cToken + feed)                             | ✅ deployed + verified — see `DEPLOYMENTS.md`                                                                                                        |
-| Corridor Sepolia hashes (compliant + every rejection + officer audit decrypt) | ⏳ pending — needs a funded key (Gate C)                                                                                                             |
-| Off-ramp sandbox payout (on-chain-triggered)                                  | ⏳ pending — needs a PSP sandbox key (Gate C2)                                                                                                       |
-| Sealed Corridor frontend (operator/sender/officer + scout's-eye)              | ✅ built · `tsc` + `next build` clean (with wallet/SDK optional-dep warnings only) — wallet-driven Sepolia runs pending a deployed Corridor (Gate C) |
-| Order III (Tier 2)                                                            | 📋 roadmap spec only                                                                                                                                 |
+The rule checks are homomorphic. The contracts compute over encrypted values without decrypting them. The final settlement path uses `FHE.select`: either the proposed amount moves, or zero moves. Both outcomes remain sealed until an authorized compliance officer decrypts them.
 
-**Real infra vs. local harness — stated plainly:** the local test suite runs on **Zama's own cleartext harness** (`forge-fhevm`) for fast iteration — that is a Zama-provided test host, _not_ the real coprocessor. **The real coprocessor, threshold-KMS decryption, and relayer only run on Sepolia**, so the definition of done is real Sepolia transaction hashes (tracked in `DEPLOYMENTS.md`), not green local tests. Nothing here fakes the relayer, encryption, input proof, ACL, user-decryption, or confidential transfer.
+## The Three Sealed Rules
 
-Every API name, signature, import path, and address used was verified against the installed package source and recorded in [`VERIFICATION.md`](VERIFICATION.md) (including the cross-contract ACL pattern for Order II and where the docs drift from the packages).
+Every corridor transfer is checked against one combined encrypted predicate.
 
-## Contracts & tests
+| Rule                | What it means                                        | What is public            | What is sealed                          |
+| ------------------- | ---------------------------------------------------- | ------------------------- | --------------------------------------- |
+| Per-transfer cap    | A single transfer cannot exceed the committed limit. | A transfer was submitted. | The limit and encrypted amount.         |
+| Recipient screening | A recipient must be allowed by the corridor policy.  | The recipient address.    | Whether the recipient passes screening. |
+| Per-sender velocity | A sender cannot exceed a rolling encrypted total.    | The time window anchor.   | Sender total, ceiling, and headroom.    |
 
-```
-packages/foundry/
-├── src/
-│   ├── Indenture.sol                     # the sealed-mandate engine (primitive)
-│   ├── orders/Corridor.sol               # VEIL — sealed compliance corridor + velocity accumulator
-│   ├── orders/Leash.sol                  # Order I — the blind single agent
-│   ├── orders/SealedSettlement.sol       # Order II — cross-contract consumer
-│   ├── orders/ConfidentialFeed.sol       # Order II — independent sealed-value oracle
-│   └── mocks/DemoConfidentialToken.sol   # ERC-7984 demo cToken for custody
-├── script/DeployIndenture.s.sol          # deploys engine + token + feed to Sepolia
-└── test/
-    ├── Corridor.t.sol                     # VEIL (14) incl. velocity/rollover/officer/leak-audit
-    ├── Indenture.t.sol                    # Order I + engine (12) incl. leak-audit & blind-agent
-    ├── SealedSettlement.t.sol             # Order II (10) incl. sealed-strike & composition
-    └── CrossContractProbe.t.sol           # throwaway cross-contract ACL proof (3)
-```
+If any rule fails, the engine moves `0`. The event stream does not say whether the cap, screening, velocity, custody, or drawdown rule caught the transfer.
 
-Run the suite (42 tests, on the cleartext harness):
+## Roles
+
+### Operator
+
+The operator runs the corridor. It commits the sealed policy, funds custody, and manages recipient screening.
+
+The operator does not receive decrypt rights over the sealed policy in a VEIL corridor. This matters: the operator can run the corridor without being able to leak or game the compliance line.
+
+### Sender
+
+The sender submits a transfer. The sender encrypts the amount client-side and signs the transaction.
+
+The sender learns that the transaction was processed, but not the sealed policy boundary and not the rule-by-rule reason for a zero settlement.
+
+### Compliance Officer
+
+The compliance officer is the audit role. It is a separate address that receives decrypt grants over policy handles and settlement outcomes.
+
+The officer can decrypt a specific flagged transfer using FHEVM user-decryption and EIP-712 approval. This is the accountability path: private to the public, inspectable by the authorized auditor.
+
+### Provider Listener
+
+The off-ramp listener is a server process. It watches for corridor settlement events, asks the compliance officer decryptor for the sealed `moved` amount, and calls a payout provider only if `moved > 0`.
+
+The listener is not a source of compliance truth. It follows the on-chain sealed outcome.
+
+## Transfer Flow
+
+1. The operator deploys or selects a `Corridor`.
+2. The operator commits a mandate into `Veil.sol` with a distinct compliance officer.
+3. The operator funds confidential-token custody.
+4. The operator sets recipient screening and the sealed velocity ceiling.
+5. A sender encrypts an amount in the browser.
+6. The sender calls `Corridor.transfer`.
+7. The corridor computes the sealed velocity predicate.
+8. `Veil.sol` combines velocity with cap, screening, custody, and drawdown checks.
+9. `Veil.sol` settles through one path:
+   - compliant transfer: encrypted `moved = amount`
+   - failed transfer: encrypted `moved = 0`
+10. The corridor updates the sender's encrypted velocity total by the actual moved amount.
+11. The compliance officer can decrypt selected outcomes for audit.
+12. The off-ramp listener can pay out fiat only after decrypting `moved > 0`.
+
+## What Is Real Today
+
+### Built and Tested
+
+The current VEIL codebase has:
+
+- `Veil.sol`: sealed-mandate engine
+- `Corridor.sol`: cross-border corridor with sealed per-sender velocity
+- `Leash.sol`: single-agent composability proof
+- `SealedSettlement.sol` and `ConfidentialFeed.sol`: cross-contract sealed-predicate proof
+- Next.js role UI for operator, sender, and officer
+- off-ramp listener with a Flutterwave provider adapter
+
+The mandatory gate is:
 
 ```bash
-pnpm install            # node deps + husky
-pnpm contracts:install  # forge soldeer install
-pnpm contracts:test     # forge test -vv
+pnpm veil:gate
 ```
 
-## Deploying to Sepolia
+That gate verifies:
 
-Real FHE only runs on Sepolia. You need a deployer funded with Sepolia ETH.
+- no tracked source references to the previous project name
+- contract build
+- exactly 39 passing Foundry tests
+- frontend typecheck
+- off-ramp typecheck
+- Prettier formatting
+
+### Deployed on Sepolia
+
+The VEIL backbone is deployed on Sepolia:
+
+| Contract                | Address                                      |
+| ----------------------- | -------------------------------------------- |
+| `Veil` engine           | `0x867f55aE8497fDA9ab4792FA9aEbbcfd7508B393` |
+| `DemoConfidentialToken` | `0x01e256c9751aaECB591e0eEf8442a8F127D9bd55` |
+| `ConfidentialFeed`      | `0xf07f473D7D195b64f9d904BC95b5B8c39D01bdA5` |
+
+Deployment block: `11,209,245`.
+
+Transaction links and gas usage are recorded in [DEPLOYMENTS.md](DEPLOYMENTS.md).
+
+Source verification on Etherscan was skipped during this deployment because `ETHERSCAN_API_KEY` was not set.
+
+## What Is Not Done Yet
+
+VEIL is not production software.
+
+Still pending:
+
+- Etherscan source verification for the fresh Sepolia deployment
+- a deployed Sepolia `Corridor` for the full operator/sender/officer flow
+- real Sepolia evidence for compliant transfer, nullified transfer, velocity breach, and officer decrypt
+- production security audit
+- production custody model
+- production compliance review
+- production payout-provider approval and funding
+
+Ethereum mainnet deployment is blocked until the target chain has the required Zama FHEVM infrastructure and the production/legal posture is ready.
+
+## Naira and Cross-Border Payments
+
+VEIL itself does not hold naira and does not magically create fiat settlement.
+
+VEIL controls whether an on-chain confidential transfer cleared. The off-ramp listener can then call a payout provider. The current adapter targets Flutterwave transfers for Nigeria / NGN.
+
+There are two different modes:
+
+| Mode       | What happens                                                                                                                                                                              |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sandbox    | Uses Flutterwave test credentials and simulated test-bank flows. No real naira reaches a real recipient.                                                                                  |
+| Production | Requires live Flutterwave approval, live keys, funded balances, compliant recipient details, and operational controls. This can move real NGN if the provider account is live and funded. |
+
+So the answer is: sandbox is not real naira; production can be real naira, but only through a live payout provider account and compliance-approved operations.
+
+## Repository Layout
+
+```text
+packages/foundry/
+  src/
+    Veil.sol
+    orders/Corridor.sol
+    orders/Leash.sol
+    orders/SealedSettlement.sol
+    orders/ConfidentialFeed.sol
+    mocks/DemoConfidentialToken.sol
+  script/
+    DeployVeil.s.sol
+  test/
+    Veil.t.sol
+    Corridor.t.sol
+    SealedSettlement.t.sol
+    CrossContractProbe.t.sol
+
+packages/nextjs/
+  app/
+    operator/
+    sender/
+    officer/
+  components/veil/
+  hooks/veil/
+  contracts/veil/
+
+packages/offramp/
+  src/
+    listener.ts
+    officer.ts
+    providers/flutterwave.ts
+```
+
+## Running Locally
+
+Install dependencies:
+
+```bash
+pnpm install
+pnpm contracts:install
+```
+
+Run the mandatory gate:
+
+```bash
+pnpm veil:gate
+```
+
+Run the frontend:
+
+```bash
+pnpm start
+```
+
+Start a local FHEVM/anvil stack:
+
+```bash
+pnpm chain
+```
+
+Deploy to Sepolia:
 
 ```bash
 cp .env.example .env.local
-# then set:
-DEPLOYER_PRIVATE_KEY=0x...
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
-ETHERSCAN_API_KEY=...            # optional, enables --verify
+# set SEPOLIA_RPC_URL and DEPLOYER_PRIVATE_KEY
+# set ETHERSCAN_API_KEY if source verification is required
+pnpm deploy:sepolia
 ```
 
-```bash
-scripts/deploy-indenture-sepolia.sh   # deploys engine + demo cToken + ConfidentialFeed
-```
+## Frontend Views
 
-The VEIL Corridor and the composability-proof consumers (`Leash`, `SealedSettlement`) are deployed per
-mandate, where the operator/principal generates the client-side encrypted inputs via the SDK. Record all
-addresses + tx hashes in [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
+The app has three operational views:
 
-## Running the Sealed Corridor UI
+- `/operator`: set sealed policy, fund custody, screen recipients
+- `/sender`: submit encrypted transfers
+- `/officer`: decrypt selected policy handles and outcomes for audit
 
-The `packages/nextjs` app is the **Sealed Corridor** — three role views over one corridor, in a near-black "border checkpoint whose rulebook is sealed" design language.
+The UI also includes a scout's-eye mode, which shows what an outside observer can infer: addresses, ordering, and ciphertext handles, but not limits, amounts, screening decisions, or pass/fail reasons.
 
-```bash
-cd packages/nextjs
-cp .env.example .env.local      # set NEXT_PUBLIC_ALCHEMY_API_KEY, NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID
-# once a Corridor is deployed (Gate C): NEXT_PUBLIC_CORRIDOR_ADDRESS=0x…  (or paste it into the in-app corridor bar)
-pnpm dev                        # http://localhost:3000
-```
+## Security Notes
 
-- **`/operator`** — seal & rotate the policy (velocity ceiling, recipient screening, fund custody). Every value renders as shimmering ciphertext glyphs; the operator sets them yet holds no decrypt grant.
-- **`/sender`** — submit a transfer through the sealed gate; the amount is encrypted client-side and the outcome is sealed even to you. A sealed per-sender velocity meter shows a ceiling exists, never where.
-- **`/officer`** — connect as the compliance officer and decrypt a flagged transfer's sealed outcome via EIP-712 (authoritative-green resolve). Sender/operator get a visible "no decrypt grant."
-- **Scout's-eye toggle** (every view) — render the corridor as an outside on-chain observer sees it: only sealed glyphs, no amounts, no thresholds, no pass/fail.
-
-Client-side encryption uses `@zama-fhe/react-sdk` v3 (`useEncrypt`); user-decryption uses `useUserDecrypt` + `useAllow` (EIP-712). The browser never holds the FHE key. Every on-chain action is a wallet-approved tx firing the real FHEVM path; a rule breach is nullified **on-chain** (`FHE.select → 0`), never guarded in the frontend. See [`VERIFICATION.md` §5b](VERIFICATION.md).
-
-## Roadmap
-
-**Order III — Collective Release (N-party private quorum).** A syndicate/group action that executes only at private quorum: "I commit capital only if ≥ K others also privately commit." K parties each escrow and submit an encrypted commit signal; the engine homomorphically tallies and releases only when the encrypted count ≥ an encrypted threshold. Individual commits never decrypt. Built on the same sealed engine, a new predicate shape.
-
-## FHEVM notes
-
-- **ACL is mandatory and minimal here.** Every encrypted value needs `FHE.allowThis` for the contract to reuse it and `FHE.allow(handle, account)` for an account to later use/decrypt it. INDENTURE default-denies everything and comments each grant with _why_ that address may touch that handle.
-- **Local runs cleartext mode.** Anvil hosts a `CleartextFHEVMExecutor` mirroring each FHE op into a plaintext map — dev-only. Sepolia uses the real relayer + KMS.
-
-## References
-
-[Zama Protocol docs](https://docs.zama.org/) · [`@zama-fhe/sdk`](https://github.com/zama-ai/sdk) · [forge-fhevm](https://github.com/zama-ai/forge-fhevm) · [OpenZeppelin Confidential Contracts](https://github.com/OpenZeppelin/openzeppelin-confidential-contracts)
+- This code is unaudited.
+- Local tests use Zama's cleartext FHEVM harness for development speed.
+- Real FHE execution and user-decryption require supported live FHEVM infrastructure.
+- Private keys and provider secrets must stay out of the frontend.
+- The off-ramp must run server-side.
+- A zero settlement must be treated as final: the provider must not pay fiat unless `moved > 0` is decrypted by the authorized officer path.
 
 ## License
 

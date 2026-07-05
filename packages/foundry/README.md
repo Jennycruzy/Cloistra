@@ -1,13 +1,13 @@
-# VEIL / INDENTURE Contracts
+# VEIL / VEIL Contracts
 
-This package contains the Solidity side of VEIL. `Indenture.sol` is the sealed-mandate engine; `orders/Corridor.sol`
+This package contains the Solidity side of VEIL. `Veil.sol` is the sealed-mandate engine; `orders/Corridor.sol`
 is the VEIL product contract that turns the engine into a sealed compliance corridor.
 
 ## Contract Map
 
 ```text
 src/
-├── Indenture.sol                     # sealed-mandate engine
+├── Veil.sol                     # sealed-mandate engine
 ├── orders/Corridor.sol               # VEIL corridor + sealed velocity accumulator
 ├── orders/Leash.sol                  # Order I composability proof
 ├── orders/SealedSettlement.sol       # Order II cross-contract proof
@@ -30,8 +30,8 @@ those transaction hashes in `../../DEPLOYMENTS.md`.
 From the repo root:
 
 ```bash
-scripts/deploy-indenture-sepolia.sh
+scripts/deploy-veil-sepolia.sh
 ```
 
-That deploys the shared INDENTURE backbone for VEIL: engine, demo confidential token, and `ConfidentialFeed`.
+That deploys the shared VEIL backbone for VEIL: engine, demo confidential token, and `ConfidentialFeed`.
 The VEIL `Corridor` is deployed per mandate after the operator encrypts the policy inputs.
