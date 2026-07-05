@@ -87,6 +87,29 @@ export async function runListener(deps: ListenerDeps): Promise<void> {
 
   // Correlate CorridorTransfer (carries recipient) with Settled (carries outcomeHandle) by nonce.
   const partiesByNonce = new Map<string, { sender: Address; recipient: Address }>();
+  const pendingSettledByNonce = new Map<string, Hex>();
+
+  async function handleSettlement(transferNonce: bigint, outcomeHandle: Hex): Promise<void> {
+    const key = transferNonce.toString();
+    const parties = partiesByNonce.get(key);
+    if (!parties) {
+      pendingSettledByNonce.set(key, outcomeHandle);
+      console.warn(
+        `[offramp] transfer nonce=${transferNonce} settled but no CorridorTransfer seen yet — deferring`,
+      );
+      return;
+    }
+    try {
+      const out = await processSettlement(deps, {
+        nonce: transferNonce,
+        outcomeHandle,
+        ...parties,
+      });
+      logOutcome(transferNonce, deps.provider.name, out);
+    } catch (err) {
+      console.error(`[offramp] transfer nonce=${transferNonce} failed:`, (err as Error).message);
+    }
+  }
 
   client.watchEvent({
     address: cfg.chain.corridorAddress,
@@ -98,7 +121,13 @@ export async function runListener(deps: ListenerDeps): Promise<void> {
           recipient: Address;
           nonce: bigint;
         };
-        partiesByNonce.set(nonce.toString(), { sender, recipient });
+        const key = nonce.toString();
+        partiesByNonce.set(key, { sender, recipient });
+        const pending = pendingSettledByNonce.get(key);
+        if (pending) {
+          pendingSettledByNonce.delete(key);
+          void handleSettlement(nonce, pending);
+        }
       }
     },
   });
@@ -109,19 +138,10 @@ export async function runListener(deps: ListenerDeps): Promise<void> {
     onLogs: async (logs) => {
       for (const log of logs) {
         const { nonce, outcomeHandle } = log.args as { nonce: bigint; outcomeHandle: Hex };
-        const parties = partiesByNonce.get(nonce.toString());
-        if (!parties) {
-          console.warn(
-            `[offramp] nonce=${nonce} settled but no CorridorTransfer seen yet — deferring`,
-          );
-          continue;
-        }
-        try {
-          const out = await processSettlement(deps, { nonce, outcomeHandle, ...parties });
-          logOutcome(nonce, deps.provider.name, out);
-        } catch (err) {
-          console.error(`[offramp] settle nonce=${nonce} failed:`, (err as Error).message);
-        }
+        // The engine emits the post-settlement mandate nonce; CorridorTransfer emits
+        // the client nonce submitted by the sender.
+        const transferNonce = nonce > 0n ? nonce - 1n : nonce;
+        await handleSettlement(transferNonce, outcomeHandle);
       }
     },
   });

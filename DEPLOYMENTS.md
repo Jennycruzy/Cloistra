@@ -21,7 +21,27 @@ Corridor parameters:
 - Operator: `0x69eb1bAA26BffCD0fA9089aa2187F6Ca3e2A54f6`
 - Compliance officer: `0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf`
 - Window: `2,592,000` seconds (`30 days`)
-- Provisioning status: deployed, verified, ready for encrypted mandate commit/funding/screening/ceiling setup.
+- Provisioning status: encrypted mandate committed, custody funded, recipient screening set, velocity ceiling set.
+
+Provisioning evidence:
+
+| Step                       | Tx                                                                                                                                                                         |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Commit sealed mandate      | [`0xdd90dcb2c32654cfc5c1347a49486a157c8997cab62c90bd949159f40e037818`](https://sepolia.etherscan.io/tx/0xdd90dcb2c32654cfc5c1347a49486a157c8997cab62c90bd949159f40e037818) |
+| Mint demo custody token    | [`0x67b10ccd39dd28925a622f3cefc31fb2bbb4d2b7e09230ac39eabc04a2370576`](https://sepolia.etherscan.io/tx/0x67b10ccd39dd28925a622f3cefc31fb2bbb4d2b7e09230ac39eabc04a2370576) |
+| Authorize engine custody   | [`0x3088d14515836ebf3dad8415e4011909382ddaa35da33f481ff3cd408d8a4064`](https://sepolia.etherscan.io/tx/0x3088d14515836ebf3dad8415e4011909382ddaa35da33f481ff3cd408d8a4064) |
+| Fund sealed custody        | [`0x3033694c84cd95e50a2e1e5cbcd9607dce11a5965cba5fc49ca2b27e2d8e8356`](https://sepolia.etherscan.io/tx/0x3033694c84cd95e50a2e1e5cbcd9607dce11a5965cba5fc49ca2b27e2d8e8356) |
+| Allow sandbox recipient    | [`0x37dff09fc920ddfcd56d7859a950737c21c7d1efc3511690533ae789f4191720`](https://sepolia.etherscan.io/tx/0x37dff09fc920ddfcd56d7859a950737c21c7d1efc3511690533ae789f4191720) |
+| Set velocity ceiling       | [`0x4b686fc2b4bfd92ed07bb6996fac47e7f2f25b69c09d31ee5f5efac4938aa9c7`](https://sepolia.etherscan.io/tx/0x4b686fc2b4bfd92ed07bb6996fac47e7f2f25b69c09d31ee5f5efac4938aa9c7) |
+| Sender transfer, clears    | [`0x65712c3cbc41c167c316fccacb1d22ee5be9d0d6edf08867841b3e357ef57c15`](https://sepolia.etherscan.io/tx/0x65712c3cbc41c167c316fccacb1d22ee5be9d0d6edf08867841b3e357ef57c15) |
+| Sender transfer, nullified | [`0x3820954f2f8cd7cd9ddc10ec7ba5554beb6f32c05134930f431e847cbaaf90a4`](https://sepolia.etherscan.io/tx/0x3820954f2f8cd7cd9ddc10ec7ba5554beb6f32c05134930f431e847cbaaf90a4) |
+| Sender transfer, clears    | [`0x18f53c52b18db78b5d060606ccf1112413c04b93b08be7beb63b6a35edd63379`](https://sepolia.etherscan.io/tx/0x18f53c52b18db78b5d060606ccf1112413c04b93b08be7beb63b6a35edd63379) |
+
+Off-ramp evidence:
+
+- Officer decrypt processed the nullified transfer in block `11,210,997` and returned `moved = 0`.
+- Officer decrypt processed the cleared transfer in block `11,211,032`; the payout adapter reached Flutterwave sandbox.
+- Flutterwave returned `400 Please enable IP Whitelisting to access this service`; no provider payout id was issued.
 
 Fresh deployment flow:
 
