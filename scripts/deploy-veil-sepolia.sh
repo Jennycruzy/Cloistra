@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the shared INDENTURE backbone for VEIL (engine + demo cToken + ConfidentialFeed) to Sepolia.
+# Deploy the shared VEIL backbone (engine + demo cToken + ConfidentialFeed) to Sepolia.
 #
 # The VEIL Corridor and the composability-proof consumers (Leash, SealedSettlement) are deployed
 # separately, where the operator/principal generates encrypted mandate inputs via the SDK.
@@ -15,6 +15,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FOUNDRY_DIR="$REPO_ROOT/packages/foundry"
+export PATH="$HOME/.foundry/bin:$PATH"
 
 # Auto-load repo-root .env.local if present, so users don't have to source it.
 if [[ -f "$REPO_ROOT/.env.local" ]]; then
@@ -30,7 +31,7 @@ fi
 # The Solidity script reads DEPLOYER_PRIVATE_KEY from env and self-broadcasts, so we do NOT pass
 # --private-key here (that would double-set the signer).
 FORGE_ARGS=(
-  script/DeployIndenture.s.sol:DeployIndenture
+  script/DeployVeil.s.sol:DeployVeil
   --rpc-url "$SEPOLIA_RPC_URL"
   --broadcast
 )
@@ -45,5 +46,5 @@ cd "$FOUNDRY_DIR"
 forge script "${FORGE_ARGS[@]}"
 
 echo
-echo "✅  INDENTURE backbone for VEIL deployed to Sepolia."
+echo "✅  VEIL backbone deployed to Sepolia."
 echo "    Copy the logged addresses + broadcast tx hashes into DEPLOYMENTS.md."

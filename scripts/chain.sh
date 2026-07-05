@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Start anvil + FHEVM cleartext host stack + FHECounter in one command.
+# Start anvil + FHEVM cleartext host stack + VEIL in one command.
 #
 # Flow (2 terminals):
-#   pnpm chain   # this script — anvil + FHEVM host + FHECounter
+#   pnpm chain   # this script — anvil + FHEVM host + VEIL
 #   pnpm start   # frontend
 #
-# To redeploy FHECounter without restarting anvil, run
+# To redeploy VEIL without restarting anvil, run
 # `pnpm deploy:localhost` in another terminal.
 set -euo pipefail
 
@@ -13,6 +13,7 @@ PORT="${ANVIL_PORT:-8545}"
 RPC_URL="http://127.0.0.1:$PORT"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export PATH="$HOME/.foundry/bin:$PATH"
 
 # forge-fhevm is installed as a soldeer dependency of packages/foundry. The
 # installed source tree includes deploy-local.sh (the canonical FHEVM host
@@ -70,11 +71,11 @@ echo "deploying FHEVM cleartext host stack..."
 # invalid value such as "testnet".
 (unset CHAIN FOUNDRY_CHAIN DAPP_CHAIN; cd "$FORGE_FHEVM_DIR" && ./deploy-local.sh --rpc-url "$RPC_URL")
 
-echo "deploying FHECounter..."
+echo "deploying VEIL..."
 RPC_URL="$RPC_URL" "$SCRIPT_DIR/deploy-localhost.sh"
 
 echo
-echo "✓ anvil + FHEVM host + FHECounter ready on $RPC_URL (chain id 31337)"
+echo "✓ anvil + FHEVM host + VEIL ready on $RPC_URL (chain id 31337)"
 echo "  next: pnpm start (in another terminal)"
 echo
 

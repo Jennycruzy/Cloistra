@@ -41,28 +41,14 @@ jobs:
         working-directory: packages/foundry
         run: forge soldeer install
 
-      - name: forge build
-        working-directory: packages/foundry
-        run: forge build --sizes
-
-      - name: forge test
-        working-directory: packages/foundry
-        run: forge test -vv
-
-      - name: frontend typecheck
-        run: pnpm --filter ./packages/nextjs check-types
-
-      - name: off-ramp typecheck
-        run: pnpm --filter @indenture/offramp check-types
+      - name: VEIL gate
+        run: pnpm veil:gate
 
       - name: frontend lint
         run: pnpm --filter ./packages/nextjs lint
 
       - name: frontend build
         run: pnpm --filter ./packages/nextjs build
-
-      - name: prettier check
-        run: pnpm exec prettier --check .
 
   gitleaks:
     name: gitleaks
