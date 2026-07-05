@@ -1,4 +1,4 @@
-# @indenture/offramp — VEIL sandbox off-ramp listener (Phase C2)
+# @veil/offramp — VEIL sandbox off-ramp listener (Phase C2)
 
 Fires a **real sandbox fiat payout** on a **genuine on-chain corridor clear**. Sandbox-only by design — it
 does **not** fund a float or complete production KYC (see [`VERIFICATION.md §6e`](../../VERIFICATION.md)).
@@ -32,7 +32,7 @@ Drop these into `.env.local` (gitignored, server-side only) and the edge is wire
 
 ```bash
 cp packages/offramp/.env.example packages/offramp/.env.local   # fill in the values above
-pnpm --filter @indenture/offramp start        # or `dev` for watch mode
+pnpm --filter @veil/offramp start        # or `dev` for watch mode
 ```
 
 ## Officer decryption
