@@ -138,19 +138,20 @@ That gate verifies:
 
 ### Deployed on Sepolia
 
-The VEIL backbone is deployed on Sepolia:
+The VEIL backbone and first `Corridor` are deployed on Sepolia:
 
 | Contract                | Address                                      |
 | ----------------------- | -------------------------------------------- |
 | `Veil` engine           | `0x867f55aE8497fDA9ab4792FA9aEbbcfd7508B393` |
 | `DemoConfidentialToken` | `0x01e256c9751aaECB591e0eEf8442a8F127D9bd55` |
 | `ConfidentialFeed`      | `0xf07f473D7D195b64f9d904BC95b5B8c39D01bdA5` |
+| `Corridor`              | `0x097Af49A096bd9f749f1C7c4F795A478237FE1D5` |
 
-Deployment block: `11,209,245`.
+Backbone deployment block: `11,209,245`. Corridor deployment block: `11,209,489`.
 
 Transaction links and gas usage are recorded in [DEPLOYMENTS.md](DEPLOYMENTS.md).
 
-Source verification on Etherscan is complete for the `Veil` engine, `DemoConfidentialToken`, and `ConfidentialFeed`.
+Source verification on Etherscan is complete for the `Veil` engine, `DemoConfidentialToken`, `ConfidentialFeed`, and `Corridor`.
 
 ## What Is Not Done Yet
 
@@ -158,7 +159,7 @@ VEIL is not production software.
 
 Still pending:
 
-- a deployed Sepolia `Corridor` for the full operator/sender/officer flow
+- Sepolia `Corridor` provisioning with encrypted mandate inputs, funding, recipient screening, and sealed velocity ceiling
 - real Sepolia evidence for compliant transfer, nullified transfer, velocity breach, and officer decrypt
 - production security audit
 - production custody model
