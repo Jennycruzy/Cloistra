@@ -9,7 +9,7 @@ export function NotConfigured() {
       <p className="text-sm" style={{ color: "var(--ob-ink-dim)" }}>
         Set an active corridor address in the bar above (or via{" "}
         <span className="ob-mono">NEXT_PUBLIC_CORRIDOR_ADDRESS</span>). A VEIL corridor is deployed per-mandate against
-        the INDENTURE engine.
+        the VEIL engine.
       </p>
     </div>
   );

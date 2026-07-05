@@ -8,7 +8,7 @@ export const corridorAbi = [
       {
         name: "_engine",
         type: "address",
-        internalType: "contract Indenture",
+        internalType: "contract Veil",
       },
       {
         name: "_mandateId",
@@ -80,7 +80,7 @@ export const corridorAbi = [
       {
         name: "",
         type: "address",
-        internalType: "contract Indenture",
+        internalType: "contract Veil",
       },
     ],
     stateMutability: "view",

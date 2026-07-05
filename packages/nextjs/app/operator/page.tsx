@@ -115,7 +115,7 @@ export default function OperatorPage() {
 
               <ActionCard
                 title="Fund sealed custody"
-                desc="Mint demo iUSD, authorise the engine, and pull an encrypted amount into custody."
+                desc="Mint demo vUSD, authorise the engine, and pull an encrypted amount into custody."
               >
                 <input
                   className="veil-input"

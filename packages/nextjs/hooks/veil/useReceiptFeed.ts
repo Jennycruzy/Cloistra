@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { parseAbiItem } from "viem";
 import type { Address, Hex } from "viem";
 import { usePublicClient } from "wagmi";
-import { ENGINE_DEPLOY_BLOCK } from "~~/contracts/indenture/addresses";
+import { ENGINE_DEPLOY_BLOCK } from "~~/contracts/veil/addresses";
 
 const CORRIDOR_TRANSFER_EVENT = parseAbiItem(
   "event CorridorTransfer(address indexed sender, address indexed recipient, uint256 indexed nonce)",

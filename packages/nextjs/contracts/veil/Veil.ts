@@ -1,7 +1,7 @@
 // AUTO-GENERATED from packages/foundry/out — do not edit by hand.
 // Regenerate after a contract change: see scripts/generateTsAbis.ts.
 
-export const indentureAbi = [
+export const veilAbi = [
   {
     type: "function",
     name: "commitMandate",

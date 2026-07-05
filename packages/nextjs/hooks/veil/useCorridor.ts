@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import type { Address, Hex } from "viem";
 import { useAccount, useChainId, useReadContract, useReadContracts } from "wagmi";
-import { corridorAbi } from "~~/contracts/indenture/Corridor";
-import { indentureAbi } from "~~/contracts/indenture/Indenture";
-import { corridorAddressFor } from "~~/contracts/indenture/addresses";
+import { corridorAbi } from "~~/contracts/veil/Corridor";
+import { veilAbi } from "~~/contracts/veil/Veil";
+import { corridorAddressFor } from "~~/contracts/veil/addresses";
 import { useVeilStore } from "~~/hooks/veil/store";
 
 export type CorridorRole = "operator" | "officer" | "sender" | "disconnected";
@@ -71,7 +71,7 @@ export function useCorridor(): CorridorInfo {
   // The mandate nonce lives on the engine, keyed by mandate id — a dependent read.
   const nonceRead = useReadContract({
     address: engine,
-    abi: indentureAbi,
+    abi: veilAbi,
     functionName: "mandateNonce",
     args: mandateId ? [mandateId] : undefined,
     query: { enabled: Boolean(engine && mandateId) },

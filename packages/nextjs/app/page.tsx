@@ -133,7 +133,7 @@ export default function Home() {
           compliance policy are real on Sepolia via the FHEVM coprocessor / KMS / relayer. Local tests use Zama&rsquo;s
           cleartext harness. The optional naira off-ramp is a licensed provider&rsquo;s <strong>sandbox</strong> payout
           proving the integration — not production money movement. The engine identifier stays{" "}
-          <span className="ob-mono">Indenture</span>; VEIL is the product face.
+          <span className="ob-mono">Veil</span>; VEIL is the product face.
         </p>
       </section>
     </VeilShell>
