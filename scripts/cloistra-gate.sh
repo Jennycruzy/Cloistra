@@ -25,7 +25,7 @@ if grep -RIn -E "$OLD_TITLE|$OLD_UPPER|$OLD_LOWER|$OLD_BRAND_TITLE|$OLD_BRAND_UP
   --exclude-dir=cache \
   --exclude-dir=broadcast \
   .; then
-  echo "CLOISTRA gate failed: tracked source still contains the old name." >&2
+  echo "CLOISTRA gate failed: tracked source still contains legacy branding." >&2
   exit 1
 fi
 

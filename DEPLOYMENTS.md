@@ -1,29 +1,27 @@
 # DEPLOYMENTS.md — CLOISTRA
 
-> Current target order: local gate → Sepolia redeploy + verification → evidence capture → mainnet decision.
+> Current target order: local gate → Sepolia verification → evidence capture → mainnet decision.
 
 ## Sepolia
 
-Status: target CLOISTRA deployment pending.
-
-Use the target table for the next verified CLOISTRA deployment. The current Sepolia deployment evidence is listed
-below with addresses, transaction hashes, blocks, and gas.
-
-| Contract                | Address | Tx  | Block | Gas used |
-| ----------------------- | ------- | --- | ----: | -------: |
-| `Cloistra` engine       | TBD     | TBD |   TBD |      TBD |
-| `DemoConfidentialToken` | TBD     | TBD |   TBD |      TBD |
-| `ConfidentialFeed`      | TBD     | TBD |   TBD |      TBD |
-| `Corridor`              | TBD     | TBD |   TBD |      TBD |
-
-### Current Sepolia Deployment Evidence
+Status: CLOISTRA backbone and first Sepolia `Corridor` are deployed and verified on Etherscan.
 
 | Contract                | Address                                                                                                                         | Tx                                                                                                                                                                         |      Block |  Gas used |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------: | --------: |
-| Engine                  | [`0x867f55aE8497fDA9ab4792FA9aEbbcfd7508B393`](https://sepolia.etherscan.io/address/0x867f55aE8497fDA9ab4792FA9aEbbcfd7508B393) | [`0xd8d7d671955b916c3f726f49d9808b325a2a54e881de03f7510c273752fa78c6`](https://sepolia.etherscan.io/tx/0xd8d7d671955b916c3f726f49d9808b325a2a54e881de03f7510c273752fa78c6) | 11,209,245 |   513,140 |
-| `DemoConfidentialToken` | [`0x01e256c9751aaECB591e0eEf8442a8F127D9bd55`](https://sepolia.etherscan.io/address/0x01e256c9751aaECB591e0eEf8442a8F127D9bd55) | [`0xa54a627b7d9409a6c2fb97b36fc2108b71e862393baeddb0b8056cf317f886b6`](https://sepolia.etherscan.io/tx/0xa54a627b7d9409a6c2fb97b36fc2108b71e862393baeddb0b8056cf317f886b6) | 11,209,245 | 1,644,538 |
-| `ConfidentialFeed`      | [`0xf07f473D7D195b64f9d904BC95b5B8c39D01bdA5`](https://sepolia.etherscan.io/address/0xf07f473D7D195b64f9d904BC95b5B8c39D01bdA5) | [`0xb205694b1c35e4ad05027f3aa6f958ad7b552bf0ffc9e3616159cf1744f39932`](https://sepolia.etherscan.io/tx/0xb205694b1c35e4ad05027f3aa6f958ad7b552bf0ffc9e3616159cf1744f39932) | 11,209,245 | 1,696,240 |
-| `Corridor`              | [`0x097Af49A096bd9f749f1C7c4F795A478237FE1D5`](https://sepolia.etherscan.io/address/0x097Af49A096bd9f749f1C7c4F795A478237FE1D5) | [`0xbfbcbae6569ca818c3e544b5b0f7f380a7213682e2ec9b8d52c4ad2fc154cb9a`](https://sepolia.etherscan.io/tx/0xbfbcbae6569ca818c3e544b5b0f7f380a7213682e2ec9b8d52c4ad2fc154cb9a) | 11,209,489 |   853,737 |
+| `Cloistra` engine       | [`0xF34694B35841ceA17acc9Fb86D2b5bd3Ac276Eee`](https://sepolia.etherscan.io/address/0xF34694B35841ceA17acc9Fb86D2b5bd3Ac276Eee) | [`0x464044567c3620035d9ae942b85ff371d24e58f8d3536e8bbe4a1fab8b322127`](https://sepolia.etherscan.io/tx/0x464044567c3620035d9ae942b85ff371d24e58f8d3536e8bbe4a1fab8b322127) | 11,210,843 |   513,140 |
+| `DemoConfidentialToken` | [`0x397ce46754a83f9c903c8e53AE9075Bd6D4d67a2`](https://sepolia.etherscan.io/address/0x397ce46754a83f9c903c8e53AE9075Bd6D4d67a2) | [`0xffdbe49a0f12d6de964530a6fd0bc1fdeaff95f0305f67015bd796d0a1b08fe3`](https://sepolia.etherscan.io/tx/0xffdbe49a0f12d6de964530a6fd0bc1fdeaff95f0305f67015bd796d0a1b08fe3) | 11,210,843 | 1,696,240 |
+| `ConfidentialFeed`      | [`0xe9f2C4c32D80bc8Bed243Da4D05bE90b478777A6`](https://sepolia.etherscan.io/address/0xe9f2C4c32D80bc8Bed243Da4D05bE90b478777A6) | [`0xffa8c032ecf4d2b9cd4197144a32b75695af32462955a92ba088acef6c48d3d1`](https://sepolia.etherscan.io/tx/0xffa8c032ecf4d2b9cd4197144a32b75695af32462955a92ba088acef6c48d3d1) | 11,210,843 | 1,644,598 |
+| `Corridor`              | [`0x4A3c965edb96f74451fe5921686e44CbFF4a8A7b`](https://sepolia.etherscan.io/address/0x4A3c965edb96f74451fe5921686e44CbFF4a8A7b) | [`0x351b8a0c7721cf462ec9f2d13ef2b2c676113386592fe447e8022532027fe359`](https://sepolia.etherscan.io/tx/0x351b8a0c7721cf462ec9f2d13ef2b2c676113386592fe447e8022532027fe359) | 11,210,851 |   853,737 |
+
+Feed publisher: `0x69eb1bAA26BffCD0fA9089aa2187F6Ca3e2A54f6`
+
+Corridor parameters:
+
+- Mandate id: `0x3d22c2c7a148f039136b47757e1eb1f365e6506be096709b10249e9c286967b0`
+- Operator: `0x69eb1bAA26BffCD0fA9089aa2187F6Ca3e2A54f6`
+- Compliance officer: `0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf`
+- Window: `2,592,000` seconds (`30 days`)
+- Provisioning status: deployed, verified, ready for encrypted mandate commit/funding/screening/ceiling setup.
 
 Fresh deployment flow:
 
@@ -31,13 +29,6 @@ Fresh deployment flow:
 pnpm deploy:sepolia
 forge script packages/foundry/script/DeployCorridor.s.sol:DeployCorridor --rpc-url "$SEPOLIA_RPC_URL" --broadcast
 ```
-
-After deployment, update:
-
-- `.env.local` / deployment environment: `ENGINE_ADDRESS`, `NEXT_PUBLIC_CORRIDOR_ADDRESS`, and
-  `NEXT_PUBLIC_CLOISTRA_DEPLOY_BLOCK`
-- `packages/nextjs/contracts/cloistra/addresses.ts`, if you want checked-in Sepolia defaults
-- this table with verified addresses, transaction hashes, blocks, and gas
 
 Run before evidence capture:
 

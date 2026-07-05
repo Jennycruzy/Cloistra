@@ -16,6 +16,19 @@ The result is a payment corridor where senders, operators, outside observers, an
 - Next.js operator, sender, and officer consoles
 - server-side off-ramp listener with a Flutterwave payout adapter
 
+## Sepolia Addresses
+
+The current Cloistra deployment on Sepolia:
+
+| Contract                | Address                                      |
+| ----------------------- | -------------------------------------------- |
+| `Cloistra` engine       | `0xF34694B35841ceA17acc9Fb86D2b5bd3Ac276Eee` |
+| `DemoConfidentialToken` | `0x397ce46754a83f9c903c8e53AE9075Bd6D4d67a2` |
+| `ConfidentialFeed`      | `0xe9f2C4c32D80bc8Bed243Da4D05bE90b478777A6` |
+| `Corridor`              | `0x4A3c965edb96f74451fe5921686e44CbFF4a8A7b` |
+
+Deployment blocks, transaction links, gas usage, and verification status are tracked in [DEPLOYMENTS.md](DEPLOYMENTS.md).
+
 ## How It Works
 
 Every corridor transfer is checked against one combined encrypted predicate.
