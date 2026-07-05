@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {FhevmTest} from "forge-fhevm/FhevmTest.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {FHE, euint64, ebool, externalEuint64, externalEbool} from "@fhevm/solidity/lib/FHE.sol";
-import {Indenture} from "../src/Indenture.sol";
+import {Veil} from "../src/Veil.sol";
 import {Corridor} from "../src/orders/Corridor.sol";
 import {DemoConfidentialToken} from "../src/mocks/DemoConfidentialToken.sol";
 import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984.sol";
@@ -19,7 +19,7 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 ///      event leaks any sealed value or the pass/fail bit. Runs on Zama's cleartext harness (fast
 ///      iteration); the definition of done is real Sepolia tx hashes (see DEPLOYMENTS.md / README).
 contract CorridorTest is FhevmTest {
-    Indenture internal engine;
+    Veil internal engine;
     DemoConfidentialToken internal token;
 
     uint256 internal constant OPERATOR_PK = 0xC0FFEE; // the corridor operator (== mandate principal)
@@ -42,7 +42,7 @@ contract CorridorTest is FhevmTest {
         officer = vm.addr(OFFICER_PK);
         sender = vm.addr(SENDER_PK);
         sender2 = vm.addr(SENDER2_PK);
-        engine = new Indenture();
+        engine = new Veil();
         token = new DemoConfidentialToken("VEIL USD", "vUSD", "");
     }
 
@@ -208,7 +208,7 @@ contract CorridorTest is FhevmTest {
 
         (externalEuint64 a, bytes memory p) = encryptUint64(40, sender, address(c));
         vm.prank(sender);
-        vm.expectRevert(Indenture.StaleNonce.selector);
+        vm.expectRevert(Veil.StaleNonce.selector);
         c.transfer(0, RECIPIENT, a, p); // stale nonce 0 reverts on-chain
     }
 

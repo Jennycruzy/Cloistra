@@ -5,9 +5,9 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {FHE, euint64, ebool, externalEuint64, externalEbool} from "@fhevm/solidity/lib/FHE.sol";
 import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984.sol";
 
-/// @title Indenture — the sealed-mandate engine.
-/// @author INDENTURE (clean-room; unaudited demonstration)
-/// @notice INDENTURE encrypts *the rule*, not just the amount — and hides the rule even from
+/// @title Veil — the sealed-mandate engine.
+/// @author VEIL (clean-room; unaudited demonstration)
+/// @notice VEIL encrypts *the rule*, not just the amount — and hides the rule even from
 ///         the actor it governs. This engine holds ERC-7984 confidential-token custody and
 ///         enforces a SEALED, encrypted mandate (per-trade cap, total exposure cap, drawdown
 ///         floor, payee allowlist) homomorphically. The delegated `agent` is BLIND: it holds
@@ -23,7 +23,7 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 ///         feed encrypted inputs in; every fund-out flows through the single internal `_settle`.
 ///         Real FHE + threshold decryption run only on Sepolia; local tests use Zama's cleartext
 ///         harness. No addresses are hardcoded — `ZamaEthereumConfig` selects them by chainId.
-contract Indenture is ZamaEthereumConfig {
+contract Veil is ZamaEthereumConfig {
     struct Mandate {
         // ── sealed mandate (the rule; decrypt-granted to principal ONLY) ──
         euint64 perTradeCap; // max sealed amount movable in a single settlement

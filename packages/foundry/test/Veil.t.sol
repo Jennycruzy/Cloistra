@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {FhevmTest} from "forge-fhevm/FhevmTest.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {FHE, euint64, ebool, externalEuint64, externalEbool} from "@fhevm/solidity/lib/FHE.sol";
-import {Indenture} from "../src/Indenture.sol";
+import {Veil} from "../src/Veil.sol";
 import {Leash} from "../src/orders/Leash.sol";
 import {DemoConfidentialToken} from "../src/mocks/DemoConfidentialToken.sol";
 import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984.sol";
@@ -14,8 +14,8 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 ///      default-deny payee, nonce increment + replay revert, receipt-chain linkage, the
 ///      leak-audit, and the blind-agent proof. Runs on Zama's cleartext harness (fast
 ///      iteration); the definition of done is real Sepolia tx hashes (see README/VERIFICATION).
-contract IndentureTest is FhevmTest {
-    Indenture internal engine;
+contract VeilTest is FhevmTest {
+    Veil internal engine;
     DemoConfidentialToken internal token;
 
     uint256 internal constant PRINCIPAL_PK = 0xA11CE;
@@ -30,19 +30,16 @@ contract IndentureTest is FhevmTest {
         disableHCUDepthLimit(); // the sealed predicate is a deep homomorphic circuit
         principal = vm.addr(PRINCIPAL_PK);
         agent = vm.addr(AGENT_PK);
-        engine = new Indenture();
-        token = new DemoConfidentialToken("Indenture USD", "iUSD", "");
+        engine = new Veil();
+        token = new DemoConfidentialToken("Veil USD", "vUSD", "");
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
     /// @notice Deploy + fully provision a mandate: commit sealed limits, fund custody, allow BOB.
-    function _mandate(
-        bytes32 id,
-        uint64 perTrade,
-        uint64 total,
-        uint64 drawdownPct,
-        uint64 fundAmount
-    ) internal returns (Leash leash) {
+    function _mandate(bytes32 id, uint64 perTrade, uint64 total, uint64 drawdownPct, uint64 fundAmount)
+        internal
+        returns (Leash leash)
+    {
         leash = new Leash(engine, id, agent);
 
         (externalEuint64 pt, bytes memory ptP) = encryptUint64(perTrade, principal, address(engine));
@@ -72,12 +69,12 @@ contract IndentureTest is FhevmTest {
     }
 
     function _spent(bytes32 id) internal returns (uint64) {
-        (euint64 s, , ) = engine.sealedState(id);
+        (euint64 s,,) = engine.sealedState(id);
         return decrypt(s);
     }
 
     function _custody(bytes32 id) internal returns (uint64) {
-        (, euint64 c, ) = engine.sealedState(id);
+        (, euint64 c,) = engine.sealedState(id);
         return decrypt(c);
     }
 
@@ -160,7 +157,7 @@ contract IndentureTest is FhevmTest {
 
         (externalEuint64 a, bytes memory p) = encryptUint64(40, agent, address(leash));
         vm.prank(agent);
-        vm.expectRevert(Indenture.StaleNonce.selector);
+        vm.expectRevert(Veil.StaleNonce.selector);
         leash.execute(0, BOB, a, p); // stale nonce 0 -> revert (on-chain, not a frontend guard)
     }
 
@@ -263,10 +260,7 @@ contract IndentureTest is FhevmTest {
         ebool payeeFlag = engine.sealedPayeeFlag(id, BOB);
 
         bytes32[4] memory handles = [
-            euint64.unwrap(perTradeCap),
-            euint64.unwrap(totalCap),
-            euint64.unwrap(drawdownPct),
-            ebool.unwrap(payeeFlag)
+            euint64.unwrap(perTradeCap), euint64.unwrap(totalCap), euint64.unwrap(drawdownPct), ebool.unwrap(payeeFlag)
         ];
 
         for (uint256 i = 0; i < handles.length; i++) {
@@ -284,7 +278,7 @@ contract IndentureTest is FhevmTest {
         Leash leash = _mandate(id, 100, 250, 50, 200);
         _execute(leash, 0, BOB, 80);
 
-        (euint64 spent, euint64 custody, ) = engine.sealedState(id);
+        (euint64 spent, euint64 custody,) = engine.sealedState(id);
         assertTrue(_acl.persistAllowed(euint64.unwrap(spent), principal), "principal can audit spent");
         assertTrue(_acl.persistAllowed(euint64.unwrap(custody), principal), "principal can audit custody");
         assertFalse(_acl.persistAllowed(euint64.unwrap(spent), agent), "agent cannot read spent");
