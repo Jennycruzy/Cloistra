@@ -93,7 +93,7 @@ export default function Home() {
             <p className="ob-hero-sub mt-5">
               Everyone else encrypts the payment and publishes the policy. CLOISTRA encrypts the{" "}
               <span style={{ color: "var(--ob-ink)" }}>policy itself</span> — the cap, the recipient screening, the
-              velocity ceiling — and still enforces every one on-chain. No sender, observer, competitor, or operator can
+              velocity ceiling — and still enforces every one onchain. No sender, observer, competitor, or operator can
               read where the compliance line sits.
             </p>
             <div className="flex flex-wrap gap-3 mt-7">

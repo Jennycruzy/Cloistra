@@ -129,7 +129,7 @@ export default function Docs() {
           This inverts the usual design. Confidential-payment systems encrypt the <em>amount</em> and publish the{" "}
           <em>rules</em>. CLOISTRA seals the rules themselves, keeps the amounts confidential too, and still gives a
           regulator a lawful way in: one designated compliance officer holds the only decryption rights, granted
-          on-chain, usable only through a threshold key ceremony.
+          onchain, usable only through a threshold key ceremony.
         </p>
         <p>
           The whole thing runs on fully homomorphic encryption via the FHEVM — contracts compute directly on encrypted
@@ -162,7 +162,7 @@ export default function Docs() {
       </Section>
 
       <Section id="transfer" eyebrow="03" title="How a transfer crosses">
-        <p>A payment moves through the corridor in four steps. None of them exposes a cleartext value on-chain.</p>
+        <p>A payment moves through the corridor in four steps. None of them exposes a cleartext value onchain.</p>
         <p>
           <Strong>1 — Encrypt.</Strong> The sender types an amount into the browser. The Zama relayer SDK encrypts it
           client-side under the network&rsquo;s public FHE key and produces a zero-knowledge{" "}
@@ -171,7 +171,7 @@ export default function Docs() {
           KMS.
         </p>
         <p>
-          <Strong>2 — Verify the input.</Strong> On-chain, <Code>FHE.fromExternal</Code> checks the proof. A forged
+          <Strong>2 — Verify the input.</Strong> Onchain, <Code>FHE.fromExternal</Code> checks the proof. A forged
           ciphertext, or someone replaying another user&rsquo;s ciphertext as their own, reverts here — at the door,
           before any rule is evaluated.
         </p>
@@ -225,8 +225,8 @@ export default function Docs() {
 
       <Section id="visibility" eyebrow="05" title="Who can see what">
         <p>
-          Decryption is not a matter of trust here; it is a matter of on-chain grants. Every ciphertext handle carries
-          an access-control list maintained by the FHEVM itself, written by the contracts at the moment each value is
+          Decryption is not a matter of trust here; it is a matter of onchain grants. Every ciphertext handle carries an
+          access-control list maintained by the FHEVM itself, written by the contracts at the moment each value is
           created.
         </p>
         <Table
@@ -271,7 +271,7 @@ export default function Docs() {
           The contracts are written against <Code>@fhevm/solidity</Code>. Encrypted values are typed —{" "}
           <Code>euint64</Code> for amounts and limits, <Code>ebool</Code> for predicates — and operated on with
           homomorphic primitives: <Code>FHE.le</Code>, <Code>FHE.add</Code>, <Code>FHE.and</Code>,{" "}
-          <Code>FHE.select</Code>. The actual FHE computation runs on a coprocessor network; symbolic handles on-chain
+          <Code>FHE.select</Code>. The actual FHE computation runs on a coprocessor network; symbolic handles onchain
           commit to every intermediate value. <Code>ZamaEthereumConfig</Code> resolves the host, the ACL, the KMS
           verifier, and the input verifier by chain id, so nothing is hardcoded.
         </p>
@@ -349,7 +349,7 @@ export default function Docs() {
         </p>
         <p>
           Payouts run through a Flutterwave v3 adapter (Nigerian naira, bank transfer, sandbox), keyed idempotently to
-          the corridor and nonce so one on-chain clear can never pay twice — retrying a processed settlement gets
+          the corridor and nonce so one onchain clear can never pay twice — retrying a processed settlement gets
           rejected by reference. The provider sits behind a typed interface; swapping rails touches one file and zero
           contracts.
         </p>
@@ -411,7 +411,7 @@ export default function Docs() {
         />
         <p>
           All four are verified on Etherscan. The full loop has been closed more than once — an encrypted transfer
-          clearing every sealed rule on-chain, officer-decrypted through the KMS, and disbursed as a successful sandbox
+          clearing every sealed rule onchain, officer-decrypted through the KMS, and disbursed as a successful sandbox
           payout — most recently at{" "}
           <a
             href="https://sepolia.etherscan.io/tx/0x0a3da67bd1e87d29f151a115a18786c8282f990dbc98318af6042da69decbfb1"

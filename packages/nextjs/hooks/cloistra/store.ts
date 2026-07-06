@@ -17,7 +17,7 @@ export type ActiveCorridor = {
 
 type CloistraState = {
   active?: ActiveCorridor;
-  /** The scout's-eye toggle — render the corridor as an outside on-chain observer sees it. */
+  /** The scout's-eye toggle — render the corridor as an outside onchain observer sees it. */
   scoutMode: boolean;
   setActive: (c?: ActiveCorridor) => void;
   toggleScout: () => void;

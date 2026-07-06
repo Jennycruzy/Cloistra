@@ -42,9 +42,8 @@ export default function SenderPage() {
                   Submit a transfer
                 </h2>
                 <p className="text-sm" style={{ color: "var(--ob-ink-dim)" }}>
-                  Your amount is encrypted in the browser and adjudicated against a rulebook you cannot read. If it
-                  breaches any sealed rule it is nullified to zero on-chain — and you will never learn which rule caught
-                  it.
+                  Your amount is encrypted in the browser, then checked against a rulebook you can&rsquo;t read. Break
+                  any sealed rule and it&rsquo;s nullified to zero onchain. You never find out which one caught it.
                 </p>
 
                 <label
@@ -122,9 +121,8 @@ export default function SenderPage() {
                 <VelocityMeter spentHandle={sealed.spent} ceilingHandle={sealed.ceiling} />
                 <div className="ob-card p-4">
                   <p className="text-[0.8rem]" style={{ color: "var(--ob-ink-dim)" }}>
-                    Your rolling total is sealed even to you. You know a ceiling exists; you cannot see where it sits or
-                    how close you are. That is the point — a line you can&rsquo;t see is a line you can&rsquo;t
-                    structure around.
+                    Your rolling total is sealed even from you. You know a ceiling exists, but not where it sits or how
+                    close you are. That&rsquo;s the point: you can&rsquo;t structure around a line you can&rsquo;t see.
                   </p>
                 </div>
               </section>

@@ -46,7 +46,7 @@ export function CloistraShell({
 
         {scout && (
           <div className="ob-card p-3 ob-mono text-[0.72rem]" style={{ color: "var(--ob-ink-dim)" }}>
-            scout&rsquo;s-eye ON — you are seeing the corridor as an outside on-chain observer does: only sealed glyphs,
+            scout&rsquo;s-eye ON — you are seeing the corridor as an outside onchain observer does: only sealed glyphs,
             no amounts, no thresholds, no pass/fail. A launderer probing the boundary learns nothing.
           </div>
         )}

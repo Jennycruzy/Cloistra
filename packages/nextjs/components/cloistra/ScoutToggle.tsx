@@ -3,7 +3,7 @@
 import { useCloistraStore } from "~~/hooks/cloistra/store";
 
 /**
- * The scout's-eye toggle. Flips the view to what an outside on-chain observer sees:
+ * The scout's-eye toggle. Flips the view to what an outside onchain observer sees:
  * only sealed glyphs — no amounts, no thresholds, no pass/fail. The visual proof that a
  * launderer probing the boundary, or a competitor copying the risk model, learns nothing.
  */
@@ -16,7 +16,7 @@ export function ScoutToggle() {
       onClick={toggle}
       className={`ob-chip cursor-pointer transition-all ${scout ? "ob-audit-chip" : ""}`}
       style={scout ? undefined : { borderColor: "var(--ob-line)" }}
-      title="See the corridor as an outside on-chain observer does — only sealed glyphs"
+      title="See the corridor as an outside onchain observer does — only sealed glyphs"
     >
       <span
         className="inline-block w-2 h-2 rounded-full"

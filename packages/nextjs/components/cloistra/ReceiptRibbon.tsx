@@ -8,8 +8,9 @@ const short = (a?: string, n = 4) => (a ? `${a.slice(0, 2 + n)}…${a.slice(-n)}
 /**
  * The hash-chained receipt ribbon. Each transfer stamps a seal-link with public ordering
  * and routing (sender → recipient at nonce N) — but NO amount, NO threshold, NO pass/fail
- * bit. Tamper-evident ordering you can watch grow. Clicking a link (officer view) selects
- * its sealed outcome handle for lawful decryption.
+ * bit. Tamper-evident ordering you can watch grow. Click a receipt to open its transaction
+ * on the explorer (gas, events, logs); in the officer view a click instead selects its
+ * sealed outcome handle for lawful decryption.
  */
 export function ReceiptRibbon({
   corridor,
@@ -48,13 +49,32 @@ export function ReceiptRibbon({
           {receipts.map(r => {
             const selected = selectedNonce !== undefined && selectedNonce === r.nonce;
             const clickable = Boolean(onSelect && r.outcomeHandle);
+            const txUrl = r.txHash ? `https://sepolia.etherscan.io/tx/${r.txHash}` : undefined;
+            // Officer view: click the card to select it for audit. Everywhere else: click to open
+            // the transfer on the explorer (gas, events, logs). Either way, a receipt is clickable.
+            const onCardClick = clickable
+              ? () => onSelect!(r)
+              : txUrl
+                ? () => window.open(txUrl, "_blank", "noopener,noreferrer")
+                : undefined;
             return (
-              <button
+              <div
                 key={`${r.txHash}-${r.nonce.toString()}`}
-                disabled={!clickable}
-                onClick={() => clickable && onSelect!(r)}
+                onClick={onCardClick}
+                role={onCardClick ? "button" : undefined}
+                tabIndex={onCardClick ? 0 : undefined}
+                onKeyDown={
+                  onCardClick
+                    ? e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onCardClick();
+                        }
+                      }
+                    : undefined
+                }
                 className={`shrink-0 text-left ob-card p-3 min-w-[190px] transition-all ${
-                  clickable ? "cursor-pointer hover:-translate-y-0.5" : "cursor-default"
+                  onCardClick ? "cursor-pointer hover:-translate-y-0.5" : "cursor-default"
                 }`}
                 style={selected ? { borderColor: "var(--ob-audit)" } : undefined}
               >
@@ -67,10 +87,32 @@ export function ReceiptRibbon({
                 <div className="ob-mono text-[0.72rem] mt-1" style={{ color: "var(--ob-ink)" }}>
                   {short(r.sender)} → {short(r.recipient)}
                 </div>
-                <div className="ob-mono text-[0.64rem] mt-1" style={{ color: "var(--ob-ink-faint)" }}>
-                  {clickable ? (selected ? "selected for audit" : "outcome sealed · click to audit") : "outcome sealed"}
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="ob-mono text-[0.64rem]" style={{ color: "var(--ob-ink-faint)" }}>
+                    {clickable ? (selected ? "selected for audit" : "click to audit") : "outcome sealed"}
+                  </span>
+                  {txUrl &&
+                    (clickable ? (
+                      <a
+                        href={txUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="ob-mono text-[0.64rem] ob-seal-text hover:underline"
+                        title="view transaction — gas, events, logs"
+                      >
+                        tx ↗
+                      </a>
+                    ) : (
+                      <span
+                        className="ob-mono text-[0.64rem] ob-seal-text"
+                        title="view transaction — gas, events, logs"
+                      >
+                        tx ↗
+                      </span>
+                    ))}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

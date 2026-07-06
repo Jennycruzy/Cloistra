@@ -33,7 +33,7 @@ export type CorridorInfo = {
 /**
  * Resolves the active CLOISTRA corridor entirely from chain. The only thing kept
  * locally is the corridor address; operator / compliance-officer / engine /
- * mandate id / window / nonce are all read on-chain, so no sealed-policy fact
+ * mandate id / window / nonce are all read onchain, so no sealed-policy fact
  * is ever cached client-side.
  */
 export function useCorridor(): CorridorInfo {

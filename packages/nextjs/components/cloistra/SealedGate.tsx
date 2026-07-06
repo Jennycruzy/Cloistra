@@ -9,7 +9,7 @@ export type GateVerdict = "cleared" | "nullified";
 /**
  * The sealed border checkpoint. Left: the sealed rulebook (cap · screening · ceiling),
  * all ciphertext. Right: the incoming transfer. A transfer is adjudicated against the
- * three sealed rows on-chain; the gate never reveals WHICH row a breach hit — it can't,
+ * three sealed rows onchain; the gate never reveals WHICH row a breach hit — it can't,
  * because the chain can't. The terminal state for a sender is "sealed" (outcome unknown
  * even to them). A `verdict` is only ever passed in the compliance-officer view, after a
  * real decrypt of the settlement outcome.

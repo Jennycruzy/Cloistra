@@ -39,7 +39,7 @@ export default function OperatorPage() {
             {role !== "operator" && (
               <div className="ob-card p-4 ob-mono text-[0.78rem]" style={{ color: "var(--ob-warm-a)" }}>
                 You are connected as <strong>{role}</strong>, not the operator. You can view the sealed policy as
-                glyphs, but rotating it requires the operator wallet — the contract enforces this on-chain, not the UI.
+                glyphs, but rotating it requires the operator wallet — the contract enforces this onchain, not the UI.
               </div>
             )}
 

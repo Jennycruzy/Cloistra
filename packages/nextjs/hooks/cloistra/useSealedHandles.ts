@@ -20,7 +20,7 @@ export type SealedHandles = {
 };
 
 /**
- * Reads every sealed policy handle for the active corridor. These are public on-chain
+ * Reads every sealed policy handle for the active corridor. These are public onchain
  * refs — meaningful ONLY to whoever holds ACL decrypt rights (the compliance officer).
  * The views render them as shimmering glyph-strings; exposing a handle is not a leak.
  */

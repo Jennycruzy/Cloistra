@@ -20,7 +20,7 @@ function errMsg(e: unknown): string {
 }
 
 /** The sender's gate phases. Note: whether the transfer CLEARED or was NULLIFIED is
- *  sealed on-chain — the sender never learns it here. Only the compliance officer can
+ *  sealed onchain — the sender never learns it here. Only the compliance officer can
  *  decrypt the outcome. So the terminal phase is "sealed", not "cleared"/"dissolved". */
 export type GatePhase = "idle" | "encrypting" | "adjudicating" | "sealed" | "error";
 
@@ -52,7 +52,7 @@ export function useSenderTransfer() {
         });
 
         setPhase("adjudicating");
-        setMessage("Adjudicating against the sealed rulebook on-chain…");
+        setMessage("Adjudicating against the sealed rulebook onchain…");
         const tx = await writeContractAsync({
           address: corridor,
           abi: corridorAbi,
@@ -63,7 +63,7 @@ export function useSenderTransfer() {
         setLastTx(tx);
         setPhase("sealed");
         setMessage(
-          "Adjudicated on-chain. The outcome is sealed — even to you. Only the compliance officer can audit it.",
+          "Adjudicated onchain. The outcome is sealed — even to you. Only the compliance officer can audit it.",
         );
         refetch();
       } catch (e) {
