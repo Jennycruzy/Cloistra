@@ -83,7 +83,7 @@ export default function Home() {
         <div className="relative z-10 grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-12 items-center">
           <Reveal>
             <span className="ob-kicker">
-              <span className="ob-kicker-dot" /> Live on Sepolia · FHEVM
+              <span className="ob-kicker-dot" /> Confidential cross-border corridor · Live on Sepolia
             </span>
             <h1 className="ob-hero-title mt-5">
               Seal the <span className="ob-shine">rules</span>,
@@ -91,10 +91,10 @@ export default function Home() {
               not just the amount.
             </h1>
             <p className="ob-hero-sub mt-5">
-              Everyone else encrypts the payment and publishes the policy. CLOISTRA encrypts the{" "}
-              <span style={{ color: "var(--ob-ink)" }}>policy itself</span> — the cap, the recipient screening, the
-              velocity ceiling — and still enforces every one onchain. No sender, observer, competitor, or operator can
-              read where the compliance line sits.
+              A confidential <span style={{ color: "var(--ob-ink)" }}>cross-border payment corridor</span> whose
+              compliance rulebook is sealed. Everyone else encrypts the payment and publishes the policy — CLOISTRA
+              encrypts the policy itself: the cap, the recipient screening, the velocity ceiling, every one still
+              enforced onchain. No sender, observer, competitor, or operator can read where the compliance line sits.
             </p>
             <div className="flex flex-wrap gap-3 mt-7">
               <Link href="/sender" className="ob-btn ob-btn-warm no-underline">
