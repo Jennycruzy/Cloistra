@@ -27,14 +27,16 @@ export default function OfficerPage() {
   // Assemble the audit targets with the contract whose ACL granted the officer decrypt rights.
   const targets = useMemo<AuditTarget[]>(() => {
     const t: AuditTarget[] = [];
+    if (selected?.outcomeHandle && engine) {
+      t.push({ label: "Flagged transfer outcome", handle: selected.outcomeHandle, contractAddress: engine });
+      return t;
+    }
     if (sealed.ceiling && corridor)
       t.push({ label: "Velocity ceiling", handle: sealed.ceiling, contractAddress: corridor });
     if (sealed.perTradeCap && engine)
       t.push({ label: "Per-transfer cap", handle: sealed.perTradeCap, contractAddress: engine });
     if (sealed.spent && corridor)
       t.push({ label: "Sender running total", handle: sealed.spent, contractAddress: corridor });
-    if (selected?.outcomeHandle && engine)
-      t.push({ label: "Flagged transfer outcome", handle: selected.outcomeHandle, contractAddress: engine });
     return t;
   }, [sealed.ceiling, sealed.perTradeCap, sealed.spent, corridor, engine, selected]);
 
